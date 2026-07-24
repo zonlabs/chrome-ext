@@ -1,7 +1,8 @@
-import React, { RefObject, useState } from 'react';
+import React, { RefObject } from 'react';
 import { Plus, ChevronDown, Check, ArrowUp, Square, X } from 'lucide-react';
 import { Tab, ModelTier, ModelEntry } from '../../shared/types';
 import { ModelSelector } from './ModelSelector';
+import { Favicon, safeUrl } from './Favicon';
 
 /* ── small local helpers ── */
 const CircleCheckIcon = () => (
@@ -27,47 +28,6 @@ const ChevronIcon = ({ isUp }: { isUp: boolean }) => (
     style={{ transform: isUp ? 'none' : 'rotate(180deg)', transition: 'transform 0.2s' }}
   />
 );
-
-const Favicon: React.FC<{ url: string; size?: number; className?: string }> = ({
-  url,
-  size = 20,
-  className,
-}) => {
-  const domain = safeUrl(url);
-  const [errored, setErrored] = useState(false);
-  const isLocal = !domain || domain === 'localhost' || domain.startsWith('127.') || domain === '0.0.0.0';
-  const showFallback = errored || isLocal;
-  const letter = (domain || '?').charAt(0).toUpperCase();
-
-  const boxStyle: React.CSSProperties = {
-    width: size,
-    height: size,
-    borderRadius: '4px',
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--text-muted, #8e8e8e)',
-    color: '#ffffff',
-    fontWeight: 600,
-    fontSize: Math.max(9, Math.round(size * 0.55)),
-    textTransform: 'uppercase',
-  };
-
-  if (showFallback) {
-    return <div className={className} style={boxStyle}>{letter}</div>;
-  }
-
-  return (
-    <img
-      className={className}
-      src={`https://icons.duckduckgo.com/ip3/${domain}.ico`}
-      alt=""
-      style={{ width: size, height: size, borderRadius: '4px', flexShrink: 0, objectFit: 'cover' }}
-      onError={() => setErrored(true)}
-    />
-  );
-};
 
 const TIER_CONFIG: Record<ModelTier, { label: string; color: string }> = {
   basic:        { label: 'Basic',        color: 'var(--text-muted, #8e8e8e)' },
@@ -109,10 +69,6 @@ interface ChatInputProps {
   onSelectModel: (val: string) => void;
   onStop: () => void;
 }
-
-const safeUrl = (url: string) => {
-  try { return new URL(url).hostname; } catch { return ''; }
-};
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   inputValue,

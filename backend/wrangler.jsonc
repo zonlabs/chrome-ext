@@ -26,5 +26,9 @@
     "bindings": [{ "name": "ChatAgent", "class_name": "ChatAgent" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatAgent"] }],
-
+  "worker_loaders": [
+    {
+      "binding": "LOADER"
+    }
+  ]
 }

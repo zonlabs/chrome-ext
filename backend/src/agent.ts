@@ -1,5 +1,7 @@
 import { AIChatAgent, OnChatMessageOptions, createToolsFromClientSchemas } from "@cloudflare/ai-chat";
 import { callable } from "agents";
+import { createCodeTool } from "@cloudflare/codemode/ai";
+import { DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet } from "ai";
 
@@ -11,8 +13,8 @@ function buildSystemPrompt(): string {
   return "You are Obot, a helpful assistant embedded in the user's browser. " +
     "Tools available: getActiveTabs (list open tabs), getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length). " +
     "Always call getTabContent on the active tab URL when the user asks for information about the current page. " +
-    "You can access connected plugins through codemode. " +
-    "Use the tools available to you to help the user.";
+    "For plugin operations (search, database queries, etc.), use the codemode tool to write JavaScript " +
+    "that calls the available functions on the `codemode` object.";
 }
 
 export class ChatAgent extends AIChatAgent<Env> {
@@ -144,7 +146,9 @@ export class ChatAgent extends AIChatAgent<Env> {
         }
       }
 
-      const tools = { ...clientTools, ...mcpTools };
+      const executor = new DynamicWorkerExecutor({ loader: this.env.LOADER });
+      const codemode = createCodeTool({ tools: mcpTools, executor });
+      const tools = { ...clientTools, codemode };
 
       const result = streamText({
         model: workersai(modelName),

@@ -2324,7 +2324,7 @@ details pre {
 /* ── Reasoning / Thinking Block ── */
 .reasoning-block {
   margin: 8px 0;
-  border-left: 2px solid rgba(180, 120, 255, 0.3);
+  border-left: 2px solid rgba(150, 150, 150, 0.3);
   padding-left: 8px;
 }
 
@@ -2348,14 +2348,31 @@ details pre {
 }
 
 .reasoning-icon {
-  color: rgb(180, 120, 255);
+  color: rgb(234, 67, 53);
   flex-shrink: 0;
 }
 
 .reasoning-label {
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 11px;
+}
+
+.reasoning-label.reasoning-shimmer {
+  background: linear-gradient(90deg,
+    var(--text-muted, #8e8e8e) 25%,
+    var(--text-secondary, #c4c7c5) 50%,
+    var(--text-muted, #8e8e8e) 75%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: reasoningShimmer 1.8s infinite linear;
+}
+
+@keyframes reasoningShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .reasoning-chevron {
@@ -2376,17 +2393,4 @@ details pre {
   font-family: inherit;
 }
 
-.reasoning-cursor {
-  display: inline-block;
-  width: 6px;
-  height: 14px;
-  background: rgb(180, 120, 255);
-  margin-left: 2px;
-  animation: reasoning-blink 0.8s steps(2) infinite;
-  vertical-align: text-bottom;
-}
 
-@keyframes reasoning-blink {
-  0% { opacity: 1; }
-  50% { opacity: 0; }
-}
