@@ -7,10 +7,27 @@ import { WORKER_URL } from '../../shared/constants';
 const BUILTIN_PLUGINS = [
   {
     id: 'exa',
-    name: 'Exa Web Search',
+    name: 'Exa Search',
     url: 'https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa',
-    description: 'Search the web, fetch page content, and find relevant information.',
-    icon: 'Globe',
+    description: 'Search and fetch web content.',
+  },
+  {
+    id: 'mem0',
+    name: 'Mem0',
+    url: 'https://mcp.mem0.ai/mcp',
+    description: 'Persistent memory and recall.',
+  },
+  {
+    id: 'apify',
+    name: 'Apify',
+    url: 'https://mcp.apify.com',
+    description: 'Web scraping and data extraction.',
+  },
+  {
+    id: 'consensus',
+    name: 'Consensus',
+    url: 'https://mcp.consensus.app/mcp',
+    description: 'Academic research and discovery.',
   },
 ];
 
@@ -261,7 +278,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
             )}
 
             <div className="plugins-list-section">
-              <div className="section-title">Built-in Plugins</div>
+              <div className="section-title">Quick Plugins</div>
               <div className="plugins-list">
                 {BUILTIN_PLUGINS.map((bp) => {
                   const connected = servers.find(s => s.id === bp.id);
@@ -270,7 +287,15 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                     <div key={bp.id} className="plugin-card">
                       <div className="plugin-header">
                         <div className="plugin-name-row">
-                          <Globe size={14} className="plugin-favicon" />
+                          {(() => {
+                            const domain = getDomain(bp.url);
+                            const faviconUrl = getFaviconUrl(bp.url);
+                            return failedFavicons.has(domain) || !faviconUrl ? (
+                              <Globe size={14} className="plugin-favicon" />
+                            ) : (
+                              <img src={faviconUrl} alt="" className="plugin-favicon" onError={() => onFaviconError(domain)} />
+                            );
+                          })()}
                           <span className="plugin-name">{bp.name}</span>
                         </div>
                         {connected ? (
@@ -312,7 +337,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                           </button>
                         )}
                       </div>
-                      <div className="plugin-status-text" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      <div className="plugin-status-text">
                         {bp.description}
                       </div>
                     </div>
@@ -356,7 +381,6 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                         <Trash2 size={14} />
                       </button>
                     </div>
-                    <div className="plugin-status-text">Status: {s.state}</div>
                   </div>
                 ))}
               </div>

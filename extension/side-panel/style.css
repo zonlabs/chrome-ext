@@ -2071,8 +2071,8 @@ details pre {
 
 .plugin-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border-color);
 }
@@ -2123,7 +2123,9 @@ details pre {
 }
 
 .plugin-card .plugin-status-text {
-  display: none;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .plugin-card .plugin-badge {
