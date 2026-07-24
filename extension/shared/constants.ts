@@ -10,8 +10,6 @@ export const WORKER_URL = typeof process !== 'undefined' && process.env?.NODE_EN
   ? 'https://api.linkos.in'
   : 'http://127.0.0.1:8787';
 
-export const PLUGINS_AGENT_ID_STORAGE_KEY = 'obot_plugins_agent_id';
-
 export const LS_THREADS = 'obot_chats';
 export const LS_ACTIVE  = 'obot_active_thread_id';
 export const LS_DISABLED_PLUGINS = 'obot_disabled_plugins';

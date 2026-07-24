@@ -15,7 +15,6 @@ import { ChatViewProps } from '../shared/types';
 
 import { 
   WORKER_URL, 
-  PLUGINS_AGENT_ID_STORAGE_KEY,
   VALID_MODELS,
   DEFAULT_MODEL,
   MODELS_DATA,
@@ -27,30 +26,9 @@ function sanitizeAgentIdPart(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
-function createInstallPluginAgentId(): string {
-  const randomId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `plugins-install-${sanitizeAgentIdPart(randomId)}`;
-}
-
-function getInstallPluginAgentId(): string {
-  try {
-    const existing = localStorage.getItem(PLUGINS_AGENT_ID_STORAGE_KEY);
-    if (existing) return existing;
-
-    const next = createInstallPluginAgentId();
-    localStorage.setItem(PLUGINS_AGENT_ID_STORAGE_KEY, next);
-    return next;
-  } catch {
-    return createInstallPluginAgentId();
-  }
-}
-
 function getPluginsAgentId(user: any): string {
   const userId = user?.id ? String(user.id) : '';
-  if (userId) return `plugins-user-${sanitizeAgentIdPart(userId)}`;
-  return getInstallPluginAgentId();
+  return userId ? `plugins-user-${sanitizeAgentIdPart(userId)}` : '';
 }
 
 type ModelTier = 'basic' | 'intermediate' | 'advanced';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wrench, RotateCw, Copy, MoreVertical, ChevronDown, ChevronUp, ChevronRight, Pencil, Check, List, Search, Globe, FileText, AlertCircle, AppWindow } from 'lucide-react';
+import { Wrench, RotateCw, Copy, MoreVertical, ChevronDown, ChevronUp, ChevronRight, Pencil, Check, List, Search, Globe, FileText, AlertCircle, AppWindow, Brain } from 'lucide-react';
 import { getToolApproval } from '@cloudflare/ai-chat/react';
 import { renderMarkdown } from '../utils/markdown';
 
@@ -133,6 +133,37 @@ function getToolIcon(rawName: string, state: string) {
     return <FileText size={13} />;
 
   return <Wrench size={13} />;
+}
+
+function ReasoningBlock({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!text?.trim()) return null;
+
+  return (
+    <div className="reasoning-block">
+      <button
+        type="button"
+        className="reasoning-toggle"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <Brain size={14} className="reasoning-icon" />
+        <span className="reasoning-label">Thinking</span>
+        {expanded ? (
+          <ChevronDown size={12} className="reasoning-chevron" />
+        ) : (
+          <ChevronRight size={12} className="reasoning-chevron" />
+        )}
+      </button>
+      {expanded && (
+        <div className="reasoning-content">
+          <pre className="reasoning-text">
+            {text}
+            {isStreaming && <span className="reasoning-cursor" />}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface ToolCallAccordionProps {
@@ -384,6 +415,17 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             <React.Fragment key={i}>
               {renderMarkdown(part.text)}
             </React.Fragment>
+          );
+        }
+
+        /* ── reasoning / thinking block ── */
+        if (part.type === 'reasoning') {
+          return (
+            <ReasoningBlock
+              key={i}
+              text={part.text}
+              isStreaming={isStreaming && isLast}
+            />
           );
         }
 

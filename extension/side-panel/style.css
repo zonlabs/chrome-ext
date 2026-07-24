@@ -2320,3 +2320,73 @@ details pre {
 .empty-state svg {
   opacity: 0.3;
 }
+
+/* ── Reasoning / Thinking Block ── */
+.reasoning-block {
+  margin: 8px 0;
+  border-left: 2px solid rgba(180, 120, 255, 0.3);
+  padding-left: 8px;
+}
+
+.reasoning-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #8e8e8e);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+
+.reasoning-toggle:hover {
+  color: var(--text-secondary, #c4c7c5);
+}
+
+.reasoning-icon {
+  color: rgb(180, 120, 255);
+  flex-shrink: 0;
+}
+
+.reasoning-label {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.reasoning-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.reasoning-content {
+  margin-top: 4px;
+}
+
+.reasoning-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, #c4c7c5);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.reasoning-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  background: rgb(180, 120, 255);
+  margin-left: 2px;
+  animation: reasoning-blink 0.8s steps(2) infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes reasoning-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}

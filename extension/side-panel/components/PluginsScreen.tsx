@@ -4,6 +4,16 @@ import { useAgent } from 'agents/react';
 
 import { WORKER_URL } from '../../shared/constants';
 
+const BUILTIN_PLUGINS = [
+  {
+    id: 'exa',
+    name: 'Exa Web Search',
+    url: 'https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa',
+    description: 'Search the web, fetch page content, and find relevant information.',
+    icon: 'Globe',
+  },
+];
+
 function getFaviconUrl(serverUrl: string): string {
   try {
     const domain = new URL(serverUrl).hostname;
@@ -129,8 +139,6 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
   };
 
   const handleRemove = async (serverId: string) => {
-    const server = servers.find(s => s.id === serverId);
-    if (server?.name === 'exa') return;
     try {
       await agent.call("removePlugin", [serverId]);
     } catch (e) {
@@ -141,10 +149,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
   // Find server name by serverId
   const getServerName = (serverId: string) => {
     const found = servers.find(s => s.id === serverId);
-    if (found) {
-      if (found.name === 'exa') return 'Exa Web Search (Built-in)';
-      return found.name;
-    }
+    if (found) return found.name;
     return serverId;
   };
 
@@ -256,6 +261,67 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
             )}
 
             <div className="plugins-list-section">
+              <div className="section-title">Built-in Plugins</div>
+              <div className="plugins-list">
+                {BUILTIN_PLUGINS.map((bp) => {
+                  const connected = servers.find(s => s.id === bp.id);
+                  const isConnecting = loading && name === bp.name;
+                  return (
+                    <div key={bp.id} className="plugin-card">
+                      <div className="plugin-header">
+                        <div className="plugin-name-row">
+                          <Globe size={14} className="plugin-favicon" />
+                          <span className="plugin-name">{bp.name}</span>
+                        </div>
+                        {connected ? (
+                          <button
+                            className="remove-btn"
+                            title="Disconnect"
+                            onClick={() => handleRemove(connected.id)}
+                            disabled={isConnecting}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        ) : (
+                          <button
+                            className="add-btn"
+                            style={{ padding: '4px 10px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            disabled={isConnecting}
+                            onClick={async () => {
+                              setLoading(true);
+                              setError('');
+                              try {
+                                const data = await agent.call("addPlugin", [bp.name, bp.url]) as any;
+                                if (data.success) {
+                                  if (data.requiresAuth && data.authUrl) {
+                                    setAuthPending({ name: bp.name, url: bp.url });
+                                    window.open(data.authUrl, '_blank', 'noopener,noreferrer');
+                                  }
+                                } else {
+                                  setError(data.error || 'Failed to connect');
+                                }
+                              } catch (e) {
+                                setError(e instanceof Error ? e.message : String(e));
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                          >
+                            <Plus size={12} />
+                            Connect
+                          </button>
+                        )}
+                      </div>
+                      <div className="plugin-status-text" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        {bp.description}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="plugins-list-section" style={{ marginTop: 16 }}>
               <div className="section-title">Connected Plugins</div>
               <div className="plugins-list">
                 {servers.map((s) => (
@@ -282,17 +348,13 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                         })()}
                         <span className="plugin-name">{s.name}</span>
                       </div>
-                      {s.name !== 'exa' ? (
-                        <button
-                          className="remove-btn"
-                          title="Remove Plugin"
-                          onClick={() => handleRemove(s.id)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      ) : (
-                        <span className="plugin-badge">System</span>
-                      )}
+                      <button
+                        className="remove-btn"
+                        title="Remove Plugin"
+                        onClick={() => handleRemove(s.id)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                     <div className="plugin-status-text">Status: {s.state}</div>
                   </div>
