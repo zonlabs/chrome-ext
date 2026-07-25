@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/zonlabs/obot/releases/latest"><img src="https://img.shields.io/badge/Extension%20Release-v0.1.0-blue?logo=github" alt="Extension Release v0.1.0" /></a>
   <img src="https://img.shields.io/badge/Extension-Chrome-blue.svg?logo=googlechrome&logoColor=white" alt="Chrome Extension" />
   <img src="https://img.shields.io/badge/Backend-Cloudflare_Workers-orange.svg?logo=cloudflare&logoColor=white" alt="Cloudflare Workers" />
   <img src="https://img.shields.io/badge/UI-React_19-blue.svg?logo=react&logoColor=white" alt="React 19" />
@@ -17,36 +18,26 @@
 
 Obot is a full-stack AI assistant consisting of a **Chrome Extension Side Panel** (frontend) and a **Cloudflare Workers** backend. It uses Cloudflare **Durable Objects**, **Workers AI**, and the **Model Context Protocol (MCP)** to provide real-time chat and tool-calling capabilities.
 
-## 🛠️ Key Features
+---
 
-- **Chrome Side Panel Integration**: React-based panel that lets you chat, ask questions about your active tab, and summarize page content.
+### 📦 Latest Extension Release
+
+You can download pre-built, ready-to-install extension bundles directly from **[GitHub Releases](https://github.com/zonlabs/obot/releases/latest)**:
+- Download the `obot-extension-v*.zip` asset from the latest release.
+- Unzip/extract the file on your computer.
+- Open `chrome://extensions`, enable **Developer mode**, and click **Load unpacked**.
+
+## ✨ Key Features
+
+- **Chrome Extension**: React-based panel that lets you chat, ask questions about your active tab, and summarize page content.
 - **Model Context Protocol (MCP)**: Integrates with external APIs (such as Exa Search, Mem0, Apify, and custom self-hosted MCP servers) using the MCP standard.
 - **Durable Objects Architecture**: Manages stateful chat sessions as Durable Objects over persistent WebSocket connections.
 - **Cloudflare Workers AI**: Uses open-source LLMs (Llama 3.2, Gemma 2B, Qwen, GLM, GPT-OSS) hosted on Cloudflare's platform.
 - **Dynamic Code Execution**: Uses `@cloudflare/codemode` to generate and run JavaScript that orchestrates MCP plugin actions.
-- **Google OAuth 2.0**: Uses Google Identity to authenticate users and persist configuration state across sessions.
+- **OAuth 2.0**: Uses Google Identity to authenticate users and persist configuration state across sessions.
 
----
 
-## 📂 Repository Structure
-
-```
-obot/
-├── extension/          # Chrome Extension (Frontend)
-│   ├── manifest.json   # Extension manifest (MV3)
-│   ├── service-worker  # Background service worker
-│   ├── side-panel/     # React 19 Web App & Styling
-│   └── icons/          # Extension brand assets & logo
-├── worker/             # Cloudflare Worker Backend (Hono)
-│   ├── src/            # Durable Object definitions & API routes
-│   └── migrations/     # D1 SQL Database migrations
-├── package.json        # Root scripts to orchestrate the workspace
-└── obot_logo_v1.svg    # Official Obot vector logo
-```
-
----
-
-## 🛠️ Quick Start
+## 🚀 Quick Start
 
 This repository is set up as a monorepo containing both the extension and worker backend.
 
@@ -81,15 +72,19 @@ npm run dev
 
 ### 2. Frontend Setup (Extension)
 
-From the root directory or `extension/` directory, install the frontend dependencies and build:
+To build the extension for **local development** (connecting to `http://127.0.0.1:8787`):
 
 ```bash
-cd extension
-npm install
-npm run build
+npm run build:ext:dev
 ```
 
-Alternatively, you can run `npm run watch` to watch for local changes to the side panel.
+To build the extension for **production** (connecting to your Cloudflare Worker URL):
+
+```bash
+npm run build:ext
+```
+
+Alternatively, you can run `npm run dev:ext` to watch for local changes to the side panel.
 
 ### 3. Load the Extension in Chrome
 
@@ -103,14 +98,16 @@ Alternatively, you can run `npm run watch` to watch for local changes to the sid
 
 ## 💻 Workspace Command Reference
 
-You can run these scripts from the **root directory** to orchestrate both folders:
+You can run these scripts from the **root directory** to orchestrate the entire project:
 
 | Command | Action |
 |---|---|
-| `npm run dev:worker` | Starts wrangler local development server for the backend |
-| `npm run build:ext` | Compiles the typescript files in the extension |
-| `npm run migrate` | Runs the initial D1 schema migrations for the database |
+| `npm run dev:worker` | Starts wrangler local development server for the backend (`http://127.0.0.1:8787`) |
+| `npm run dev:ext` | Watches for local changes to the Chrome extension side panel |
+| `npm run build:ext` | Builds the Chrome extension for production (`https://api.linkos.in`) |
+| `npm run build:ext:dev` | Builds the Chrome extension for local dev (`http://127.0.0.1:8787`) |
 | `npm run build:worker` | Deploys the worker backend directly to Cloudflare |
+| `npm run migrate` | Runs the initial D1 schema migrations for the database |
 
 ---
 

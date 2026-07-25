@@ -1,34 +1,44 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { routeAgentRequest } from 'agents';
+
 import { Env } from './db/schema';
 import { ChatAgent } from './agent';
 import chatRoute from './routes/chat';
-// import extractRoute from './routes/extract';
-// import priceHistoryRoute from './routes/price-history';
-// import couponsRoute from './routes/coupons';
-// import matchRoute from './routes/match';
 import authRoute from './routes/auth';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
 import faviconRoute from './routes/favicon';
 
 export { ChatAgent };
-export { CodemodeRuntime } from "@cloudflare/codemode";
+export { CodemodeRuntime } from '@cloudflare/codemode';
+
+const EXTENSION_ID = 'llihcpikannlnjolgcmbebnoihokiffn';
+const ALLOWED_ORIGINS = new Set([
+  `chrome-extension://${EXTENSION_ID}`,
+  'https://api.linkos.in',
+  'http://127.0.0.1:8787',
+]);
+
+function getCorsOrigin(requestOrigin: string | null): string {
+  if (requestOrigin && ALLOWED_ORIGINS.has(requestOrigin)) {
+    return requestOrigin;
+  }
+  return `chrome-extension://${EXTENSION_ID}`;
+}
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use('/*', cors({
-  origin: ['chrome-extension://*'],
-  allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  '/*',
+  cors({
+    origin: (origin) => (origin && ALLOWED_ORIGINS.has(origin) ? origin : null),
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 app.route('/api', chatRoute);
-// app.route('/api', extractRoute);
-// app.route('/api', priceHistoryRoute);
-// app.route('/api', couponsRoute);
-// app.route('/api', matchRoute);
 app.route('/api', authRoute);
 app.route('/api', threadsRoute);
 app.route('/api', suggestionsRoute);
@@ -145,9 +155,9 @@ app.get('/api/auth/callback', (c) => {
 </html>`);
 });
 
-function corsify(response: Response): Response {
+function corsify(response: Response, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', '*');
+  headers.set('Access-Control-Allow-Origin', getCorsOrigin(requestOrigin));
   headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   return new Response(response.body, {
@@ -159,24 +169,31 @@ function corsify(response: Response): Response {
 
 export default {
   async fetch(request: Request, env: Env) {
+    const origin = request.headers.get('Origin');
+
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: {
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': getCorsOrigin(origin),
           'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       });
     }
 
-    const agentResponse = await routeAgentRequest(request, env);
-    if (agentResponse) {
-      if (agentResponse.status !== 101) {
-        return corsify(agentResponse);
+    try {
+      const agentResponse = await routeAgentRequest(request, env);
+      if (agentResponse) {
+        return agentResponse.status === 101 ? agentResponse : corsify(agentResponse, origin);
       }
-      return agentResponse;
+    } catch (err) {
+      console.error('[routeAgentRequest ERROR]', err);
+      return corsify(
+        new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 500 }),
+        origin
+      );
     }
+
     return app.fetch(request, env);
   },
 };
-

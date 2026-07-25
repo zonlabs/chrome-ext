@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "build": "esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"production\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"production\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"production\\\"",
+    "build:dev": "esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"development\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"development\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"development\\\"",
     "watch": "esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --watch"
   },
   "dependencies": {
-    "@cloudflare/ai-chat": "^0.9.3",
-    "agents": "^0.17.4",
+    "@cloudflare/ai-chat": "^0.10.0",
+    "agents": "^0.19.0",
     "lucide-react": "^1.25.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
