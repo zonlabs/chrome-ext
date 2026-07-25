@@ -9,13 +9,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Extension-Chrome-blue.svg" alt="Chrome Extension" />
-  <img src="https://img.shields.io/badge/Backend-Cloudflare_Workers-orange.svg" alt="Cloudflare Workers" />
-  <img src="https://img.shields.io/badge/UI-React_19-blue.svg" alt="React 19" />
-  <img src="https://img.shields.io/badge/Database-Cloudflare_D1-orange.svg" alt="Cloudflare D1" />
+  <img src="https://img.shields.io/badge/Extension-Chrome-blue.svg?logo=googlechrome&logoColor=white" alt="Chrome Extension" />
+  <img src="https://img.shields.io/badge/Backend-Cloudflare_Workers-orange.svg?logo=cloudflare&logoColor=white" alt="Cloudflare Workers" />
+  <img src="https://img.shields.io/badge/UI-React_19-blue.svg?logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/Database-Cloudflare_D1-orange.svg?logo=cloudflare&logoColor=white" alt="Cloudflare D1" />
 </p>
-
----
 
 Obot is a full-stack AI assistant consisting of a **Chrome Extension Side Panel** (frontend) and a **Cloudflare Workers** backend. It uses Cloudflare **Durable Objects**, **Workers AI**, and the **Model Context Protocol (MCP)** to provide real-time chat and tool-calling capabilities.
 
