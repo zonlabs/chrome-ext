@@ -17,6 +17,7 @@ const BUILTIN_PLUGINS = [
     name: 'Mem0',
     url: 'https://mcp.mem0.ai/mcp',
     description: 'Persistent memory and recall.',
+    icon: 'https://avatars.githubusercontent.com/u/137054526',
   },
   {
     id: 'apify',
@@ -36,6 +37,7 @@ const BUILTIN_PLUGINS = [
     url: 'http://127.0.0.1:3000/sse',
     description: 'Control and inspect live Chrome for automation, debugging, and performance.',
     additionalInfo: 'Run local bridge: npx supergateway --port 3000 --stdio "npx -y chrome-devtools-mcp@latest"',
+    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/chrome/chrome-original.svg',
   },
 ];
 
@@ -351,6 +353,9 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                       <div className="plugin-header">
                         <div className="plugin-name-row">
                           {(() => {
+                            if ((bp as any).icon) {
+                              return <img src={(bp as any).icon} alt="" className="plugin-favicon" />;
+                            }
                             const domain = getDomain(bp.url);
                             const faviconUrl = getFaviconUrl(bp.url);
                             return failedFavicons.has(domain) || !faviconUrl ? (
