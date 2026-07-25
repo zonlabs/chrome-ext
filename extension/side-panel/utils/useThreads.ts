@@ -59,6 +59,7 @@ export function useThreads(persist: boolean = true) {
 
   useEffect(() => {
     if (!persist) return;
+    setThreads(prev => prev.length === 0 ? readLocalThreads() : prev);
     if (didSyncRef.current) return;
     didSyncRef.current = true;
 
@@ -140,19 +141,14 @@ export function useThreads(persist: boolean = true) {
     setThreads(prev => {
       const updated = prev.filter(t => t.id !== id);
       if (persist) writeLocalThreads(updated);
+      if (id === activeThreadId) {
+        const nextId = updated.length > 0 ? updated[0].id : crypto.randomUUID();
+        setTimeout(() => setActiveThreadId(nextId), 0);
+      }
       return updated;
     });
     if (persist) syncDelete(id);
-
-    setThreads(prev => {
-      if (id === activeThreadId) {
-        const nextId = prev.length > 0 ? prev[0].id : crypto.randomUUID();
-        setActiveThreadIdState(nextId);
-        if (persist) localStorage.setItem(LS_ACTIVE, nextId);
-      }
-      return prev;
-    });
-  }, [activeThreadId, syncDelete, persist]);
+  }, [activeThreadId, setActiveThreadId, syncDelete, persist]);
 
   return {
     threads,

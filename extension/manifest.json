@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArgHv+2aybIdBdAUnJMdAUP8sDMfqlXgaACcbawXkO+BeUMSYmCAFQYF7Bt59rY2s2jNKff7fkjZL+GLrc750F6peuVj0HY++TbOQettHQnyHt5MtE8bTdftU8KifDHkJAQqAilYGodN5Qok4wa5RZldXiyFx5XSW+aNIum+ww6SQt/EdtHoZ4txXBSUFs+/twKPNDeTVJzhrrzHaLITXq9s18HwZNTLLwl7746zLhZYYP8H41n5T1FnjS12FW2fTcnmFpSRyVs4KxFRF4b5NjP7HUs5Letbc0EFH6iMgPfy1qiQmA7EB0DVjLxGwpAGj/6rWw/RREwuEtzlFlyaWfwIDAQAB",
   "name": "Obot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Your AI assistant",
   "permissions": [
     "storage",
@@ -13,13 +13,22 @@
   ],
   "oauth2": {
     "client_id": "4924083673-keao38oe65lth768v8r0d2lb76s06cuc.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ]
   },
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["dist/content-script.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "dist/content-script.js"
+      ],
       "run_at": "document_idle"
     }
   ],

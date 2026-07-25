@@ -93,8 +93,25 @@ export function ChatView(props: ChatViewProps) {
     host: WORKER_URL,
   }), [activeThreadId]);
 
-  /** Agent connection for the current active thread. */
-  const agent = useAgent(agentOptions);
+  /** Raw agent connection for the current active thread. */
+  const rawAgent = useAgent(agentOptions);
+
+  /** Stable ref holding the latest agent instance for the Proxy wrapper. */
+  const agentRef = useRef(rawAgent);
+  agentRef.current = rawAgent;
+
+  /** Stable agent proxy wrapper that maintains referential identity across socket reconnects for the same activeThreadId. */
+  const agent = useMemo(() => {
+    return new Proxy({} as typeof rawAgent, {
+      get(_target, prop) {
+        const value = (agentRef.current as any)[prop];
+        if (typeof value === 'function') {
+          return value.bind(agentRef.current);
+        }
+        return value;
+      }
+    });
+  }, [activeThreadId]);
 
   /** Stable ref wrapping getSelectedTabs so client tools always read the latest tabs without re-creating. */
   const getSelectedTabsRef = useRef<() => { url: string; title: string }[]>(() => []);
@@ -111,6 +128,18 @@ export function ChatView(props: ChatViewProps) {
       getSelectedTabs: () => getSelectedTabsRef.current()
     });
   }, []);
+
+  /** Tool schemas without execute method to prevent double-execution between useAgentChat's auto-resolver and onToolCall handler. */
+  const clientToolSchemas = useMemo(() => {
+    const schemas: Record<string, { description: string; parameters: any }> = {};
+    for (const [name, tool] of Object.entries(clientTools)) {
+      schemas[name] = {
+        description: tool.description || '',
+        parameters: tool.parameters,
+      };
+    }
+    return schemas;
+  }, [clientTools]);
 
   /** Execute a client-side tool call triggered by the agent and stream the output back. */
   const handleToolCall = useCallback(async ({ toolCall, addToolOutput }: {
@@ -133,17 +162,22 @@ export function ChatView(props: ChatViewProps) {
     });
   }, [clientTools]);
 
+  const enabledPluginKey = useMemo(() => enabledPluginIds.join(','), [enabledPluginIds]);
+
+  /** Memoized request body for useAgentChat. */
+  const chatBody = useMemo(() => ({
+    model,
+    pluginsAgentId,
+    userId: user?.id || null,
+    enabledPlugins: enabledPluginIds
+  }), [model, pluginsAgentId, user?.id, enabledPluginKey]);
+
   /** Chat state: message list, send/stop helpers, tool approval, and streaming status from the agent. */
   const { messages, sendMessage, addToolApprovalResponse, status, clearHistory, stop, setMessages, error: chatError } = useAgentChat({
     agent,
-    body: { model, pluginsAgentId, userId: user?.id || null, enabledPlugins: enabledPluginIds },
+    body: chatBody,
     onToolCall: handleToolCall,
-    tools: clientTools,
-    onData: (data: any) => {
-      if (data?.type === 'chat:title' && data?.title) {
-        updateActiveThreadTitle(data.title);
-      }
-    },
+    tools: clientToolSchemas,
   });
 
   /** Dismissible error toast message, or null when hidden. */

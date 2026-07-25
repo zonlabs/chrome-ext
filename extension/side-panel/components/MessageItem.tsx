@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RotateCw, Copy, MoreVertical, ChevronDown, ChevronRight, Pencil, Check } from 'lucide-react';
+import { RotateCw, Copy, MoreVertical, ChevronDown, ChevronRight, Pencil, Check, Wrench } from 'lucide-react';
 import { getToolApproval } from '@cloudflare/ai-chat/react';
 import { renderMarkdown } from '../utils/markdown';
 import { formatToolName } from '../utils/toolNames';

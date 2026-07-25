@@ -29,6 +29,10 @@ export function formatToolName(raw: string): string {
       .join(' ');
   }
 
+  if (cleaned.toLowerCase().includes('codemode') || cleaned.toLowerCase().includes('code mode')) {
+    cleaned = 'Workbench';
+  }
+
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
@@ -54,6 +58,10 @@ export function getToolSummary(rawName: string, args: any, output: any, state: s
     }
   }
 
+  if (name.includes('codemode') || name.includes('code_mode')) {
+    if (isExecuting) return 'Processing in workbench...';
+    return 'Evaluated in workbench';
+  }
   if (name.includes('web_search') || name.includes('search_web')) {
     if (isExecuting) return 'Searching the web...';
     if (hasCount) return `Found ${count} search result${count === 1 ? '' : 's'}`;
@@ -100,7 +108,8 @@ export function getToolIcon(rawName: string, state: string) {
   else if (!rawName) icon = 'Wrench';
   else {
     const name = rawName.toLowerCase();
-    if (name === 'gettabcontent' || name === 'getactivetabs') icon = 'AppWindow';
+    if (name.includes('codemode') || name.includes('code_mode') || name.includes('terminal') || name.includes('shell')) icon = 'SquareTerminal';
+    else if (name === 'gettabcontent' || name === 'getactivetabs') icon = 'AppWindow';
     else if (name.includes('search')) icon = 'Search';
     else if (name.includes('fetch') || name.includes('navigate') || name.includes('browse') || name.includes('scrape') || name.includes('web')) icon = 'Globe';
     else if (name.includes('list')) icon = 'List';

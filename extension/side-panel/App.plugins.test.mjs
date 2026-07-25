@@ -5,8 +5,7 @@ import assert from 'node:assert/strict';
 const source = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8');
 
 test('plugins modal uses a stable per-user agent id', () => {
-  assert.match(source, /function getPluginsAgentId\(user: any\): string/);
-  assert.match(source, /plugins-user-\$\{sanitizeAgentIdPart\(userId\)\}/);
+  assert.match(source, /import \{ getPluginsAgentId \} from '\.\/utils\/agentId'/);
   assert.match(source, /const pluginsAgentId = useMemo\(\(\) => getPluginsAgentId\(user\), \[user\?\.id\]\);/);
   assert.doesNotMatch(source, /<PluginsModal\s+agentId=\{activeThreadId\}/);
   assert.doesNotMatch(source, /const PLUGINS_AGENT_ID = 'plugins';/);

@@ -153,6 +153,15 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
 
   const MAX_DESC_LEN = 80;
 
+  const handleMcpUpdate = useCallback((mcpState: any) => {
+    console.log('[PluginsPage] MCP state updated:', mcpState);
+    if (mcpState) {
+      setServers(mcpStateToServers(mcpState));
+      setTools(mcpState.tools ?? []);
+      setResources(mcpState.resources ?? []);
+    }
+  }, []);
+
   /** Agent connection for MCP state streaming — receives server, tool, and resource updates. */
   const agent = useAgent({
     agent: 'ChatAgent',
@@ -160,14 +169,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
     host: WORKER_URL,
     onClose: useCallback(() => setConnectionStatus('disconnected'), []),
     onOpen: useCallback(() => setConnectionStatus('connected'), []),
-    onMcpUpdate: (mcpState: any) => {
-      console.log('[PluginsPage] MCP state updated:', mcpState);
-      if (mcpState) {
-        setServers(mcpStateToServers(mcpState));
-        setTools(mcpState.tools ?? []);
-        setResources(mcpState.resources ?? []);
-      }
-    },
+    onMcpUpdate: handleMcpUpdate,
   });
 
   /** Add a new MCP server via the agent's addPlugin RPC. */

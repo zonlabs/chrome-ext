@@ -2,11 +2,12 @@
   "name": "obot-app",
   "private": true,
   "scripts": {
-    "dev:worker": "cd worker && npx wrangler dev",
-    "dev:ext": "cd extension && npm run watch",
+    "build": "npm run build:ext",
     "build:ext": "cd extension && npm run build",
     "build:ext:dev": "cd extension && npm run build:dev",
     "build:worker": "cd worker && npx wrangler deploy",
+    "dev:worker": "cd worker && npx wrangler dev",
+    "dev:ext": "cd extension && npm run watch",
     "migrate": "cd worker && npx wrangler d1 execute obot-db --file=migrations/001_init.sql"
   },
   "devDependencies": {

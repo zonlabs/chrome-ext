@@ -95,7 +95,15 @@ export default function App() {
         url: s.server_url ?? '',
         state: s.state,
       }));
-      setAvailablePlugins(list);
+      setAvailablePlugins(prev => {
+        if (
+          prev.length === list.length &&
+          prev.every((p, i) => p.id === list[i].id && p.name === list[i].name && p.url === list[i].url && p.state === list[i].state)
+        ) {
+          return prev;
+        }
+        return list;
+      });
     }
   }, []);
 

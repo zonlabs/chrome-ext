@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, AlertCircle, Wrench, Search, Globe, List, FileText, AppWindow } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertCircle, Wrench, Search, Globe, List, FileText, AppWindow, SquareTerminal } from 'lucide-react';
 import { getToolSummary, formatToolName } from '../utils/toolNames';
 
 /** Props for the ToolCallAccordion component. */
@@ -14,6 +14,7 @@ function getToolIconComponent(rawName: string, state: string) {
   if (state === 'output-error') return <AlertCircle size={13} style={{ color: '#ff6b6b' }} />;
   if (!rawName) return <Wrench size={13} />;
   const name = rawName.toLowerCase();
+  if (name.includes('codemode') || name.includes('code_mode') || name.includes('terminal') || name.includes('shell')) return <SquareTerminal size={13} />;
   if (name === 'gettabcontent' || name === 'getactivetabs') return <AppWindow size={13} />;
   if (name.includes('search')) return <Search size={13} />;
   if (name.includes('fetch') || name.includes('navigate') || name.includes('browse') || name.includes('scrape') || name.includes('web')) return <Globe size={13} />;

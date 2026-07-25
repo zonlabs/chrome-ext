@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useMemo } from 'react';
 import { useAgent } from 'agents/react';
 
 import { WORKER_URL } from '../../shared/constants';
@@ -9,15 +9,18 @@ interface PluginsSubscriptionProps {
   onMcpUpdate: (state: any) => void;
 }
 
+const NOOP = () => {};
+
 /** Subscribes to MCP plugin updates for a given agent via the Agents SDK. */
 export function PluginsSubscription({ agentId, onMcpUpdate }: PluginsSubscriptionProps) {
-  const stableOnMcpUpdate = useCallback(onMcpUpdate, []);
-  useAgent({
+  const agentOptions = useMemo(() => ({
     agent: 'ChatAgent',
     name: agentId,
     host: WORKER_URL,
-    onIdentityChange: () => {},
-    onMcpUpdate: stableOnMcpUpdate,
-  });
+    onIdentityChange: NOOP,
+    onMcpUpdate,
+  }), [agentId, onMcpUpdate]);
+
+  useAgent(agentOptions);
   return null;
 }
