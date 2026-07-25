@@ -4,7 +4,6 @@ import { createCodeTool } from "@cloudflare/codemode/ai";
 import { DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet } from "ai";
-import { createBrowserTools } from "agents/browser/ai";
 
 import { Env } from "./db/schema";
 import { McpProxy } from "./mcp-proxy";
@@ -156,12 +155,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 
       const executor = new DynamicWorkerExecutor({ loader: this.env.LOADER });
       const codemode = createCodeTool({ tools: mcpTools, executor });
-      const browserTools = createBrowserTools({
-        ctx: this.ctx,
-        browser: this.env.BROWSER,
-        loader: this.env.LOADER,
-      });
-      const tools = { ...clientTools, codemode, ...browserTools };
+      const tools = { ...clientTools, codemode };
 
       const result = streamText({
         model: workersai(modelName),

@@ -30,8 +30,6 @@
     {
       "binding": "LOADER"
     }
-  ],
-  "browser": {
-    "binding": "BROWSER"
-  }
+  ]
 }
+

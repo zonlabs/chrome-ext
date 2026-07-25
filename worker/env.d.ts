@@ -8,7 +8,6 @@ interface __BaseEnv_Env {
 	AI: Ai;
 	JWT_SECRET: string;
 	ChatAgent: DurableObjectNamespace<import("./src/index").ChatAgent>;
-	BROWSER: Fetcher;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
