@@ -30,6 +30,13 @@ const BUILTIN_PLUGINS = [
     url: 'https://mcp.consensus.app/mcp',
     description: 'Academic research and discovery.',
   },
+  {
+    id: 'chrome-devtools',
+    name: 'Chrome DevTools',
+    url: 'http://127.0.0.1:3000/sse',
+    description: 'Control and inspect live Chrome for automation, debugging, and performance.',
+    additionalInfo: 'Run local bridge: npx supergateway --port 3000 --stdio "npx -y chrome-devtools-mcp@latest"',
+  },
 ];
 
 /** Build the favicon proxy URL for a given MCP server URL. */
@@ -134,6 +141,8 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   /** Set of tool/resource description keys that have been expanded by the user. */
   const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set());
+  /** Set of tool keys whose parameters list is expanded by the user (collapsed by default). */
+  const [expandedParams, setExpandedParams] = useState<Set<string>>(new Set());
   /** Domains whose favicons failed to load (show fallback icon). */
   const [failedFavicons, setFailedFavicons] = useState<Set<string>>(new Set());
 
@@ -145,6 +154,15 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
   /** Toggle the expanded/collapsed state of a tool description. */
   const toggleDesc = (key: string) => {
     setExpandedDescs(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  /** Toggle the expanded/collapsed state of a tool's parameters. */
+  const toggleParams = (key: string) => {
+    setExpandedParams(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
       return next;
@@ -255,7 +273,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
           )}
           <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
             {connectionStatus === 'connected' ? 'Connected' :
-             connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+              connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
           </span>
         </div>
       </header>
@@ -284,7 +302,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
 
       {/* ── Main Content Area ── */}
       <div className="plugins-page-content">
-        
+
         {/* ── Tab: Manage/Settings ── */}
         {activeTab === 'settings' && (
           <div className="settings-tab-content">
@@ -383,7 +401,12 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                         )}
                       </div>
                       <div className="plugin-status-text">
-                        {bp.description}
+                        <div>{bp.description}</div>
+                        {(bp as any).additionalInfo && (
+                          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--accent-blue, #8ab4f8)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                            {(bp as any).additionalInfo}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -463,23 +486,42 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                         )}
                       </div>
                     )}
-                    
+
                     {t.inputSchema && t.inputSchema.properties && Object.keys(t.inputSchema.properties).length > 0 && (
                       <div className="tool-params">
-                        <div className="params-title">Parameters:</div>
-                        <div className="params-list">
-                          {Object.entries(t.inputSchema.properties).map(([pName, pSchema]: [string, any]) => {
-                            const isRequired = t.inputSchema.required?.includes(pName);
-                            return (
-                              <div key={pName} className="param-item">
-                                <span className="param-name">{pName}</span>
-                                <span className="param-type">({pSchema.type || 'any'})</span>
-                                {isRequired && <span className="param-required">*required</span>}
-                                {pSchema.description && <span className="param-desc"> — {pSchema.description}</span>}
-                              </div>
-                            );
-                          })}
+                        <div
+                          className="params-title"
+                          onClick={() => toggleParams(`${t.serverId}-${t.name}`)}
+                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}
+                        >
+                          <span>Parameters ({Object.keys(t.inputSchema.properties).length})</span>
+                          <button
+                            className="desc-toggle"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleParams(`${t.serverId}-${t.name}`);
+                            }}
+                            style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: 'pointer' }}
+                          >
+                            {expandedParams.has(`${t.serverId}-${t.name}`) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </button>
                         </div>
+                        {expandedParams.has(`${t.serverId}-${t.name}`) && (
+                          <div className="params-list">
+                            {Object.entries(t.inputSchema.properties).map(([pName, pSchema]: [string, any]) => {
+                              const isRequired = t.inputSchema.required?.includes(pName);
+                              return (
+                                <div key={pName} className="param-item">
+                                  <span className="param-name">{pName}</span>
+                                  <span className="param-type">({pSchema.type || 'any'})</span>
+                                  {isRequired && <span className="param-required">*required</span>}
+                                  {pSchema.description && <span className="param-desc"> — {pSchema.description}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -520,7 +562,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
             )}
           </div>
         )}
-        
+
       </div>
     </div>
   );
