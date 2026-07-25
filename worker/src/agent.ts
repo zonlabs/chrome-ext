@@ -1,26 +1,26 @@
 import { AIChatAgent, OnChatMessageOptions, createToolsFromClientSchemas } from "@cloudflare/ai-chat";
 import { callable } from "agents";
+import { createCodeTool } from "@cloudflare/codemode/ai";
+import { DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet } from "ai";
+
 import { Env } from "./db/schema";
 import { McpProxy } from "./mcp-proxy";
 
 const DEFAULT_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
-const EXA_MCP_URL = "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa";
-
 function buildSystemPrompt(): string {
   return "You are Obot, a helpful assistant embedded in the user's browser. " +
     "Tools available: getActiveTabs (list open tabs), getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length). " +
-    "Always call getTabContent on the active tab URL when the user asks about what's on their screen. Never guess page content from its URL.";
+    "Always call getTabContent on the active tab URL when the user asks for information about the current page. " +
+    "For plugin operations (search, database queries, etc.), use the codemode tool to write JavaScript " +
+    "that calls the available functions on the `codemode` object.";
 }
 
 export class ChatAgent extends AIChatAgent<Env> {
   private _userId: string | null = null;
 
   async onStart() {
-    if (this.name?.includes("plugins")) {
-      await this.addMcpServer("exa", EXA_MCP_URL, { id: "ExavMbPd" });
-    }
   }
 
   override async onRequest(request: Request): Promise<Response> {
@@ -62,7 +62,6 @@ export class ChatAgent extends AIChatAgent<Env> {
 
   @callable()
   async removePlugin(serverId: string): Promise<{ success: boolean; error?: string }> {
-    if (serverId === 'exa') return { success: false, error: 'Cannot remove built-in exa server' };
     try {
       await this.removeMcpServer(serverId);
       return { success: true };
@@ -147,6 +146,10 @@ export class ChatAgent extends AIChatAgent<Env> {
         }
       }
 
+      const executor = new DynamicWorkerExecutor({ loader: this.env.LOADER });
+      const codemode = createCodeTool({ tools: mcpTools, executor });
+      const tools = { ...clientTools, codemode };
+
       const result = streamText({
         model: workersai(modelName),
         system: buildSystemPrompt(),
@@ -154,10 +157,7 @@ export class ChatAgent extends AIChatAgent<Env> {
           messages: await convertToModelMessages(this.messages),
           toolCalls: "before-last-2-messages",
         }),
-        tools: {
-          ...clientTools,
-          ...mcpTools,
-        },
+        tools,
         maxOutputTokens: 1024,
         temperature: 0.3,
         stopWhen: isStepCount(10),

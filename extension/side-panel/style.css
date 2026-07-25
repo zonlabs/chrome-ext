@@ -2071,8 +2071,8 @@ details pre {
 
 .plugin-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border-color);
 }
@@ -2123,7 +2123,9 @@ details pre {
 }
 
 .plugin-card .plugin-status-text {
-  display: none;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .plugin-card .plugin-badge {
@@ -2320,3 +2322,77 @@ details pre {
 .empty-state svg {
   opacity: 0.3;
 }
+
+/* ── Reasoning / Thinking Block ── */
+.reasoning-block {
+  margin: 8px 0;
+  border-left: 2px solid rgba(150, 150, 150, 0.3);
+  padding-left: 8px;
+}
+
+.reasoning-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #8e8e8e);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+
+.reasoning-toggle:hover {
+  color: var(--text-secondary, #c4c7c5);
+}
+
+.reasoning-icon {
+  color: rgb(234, 67, 53);
+  flex-shrink: 0;
+}
+
+.reasoning-label {
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.reasoning-label.reasoning-shimmer {
+  background: linear-gradient(90deg,
+    var(--text-muted, #8e8e8e) 25%,
+    var(--text-secondary, #c4c7c5) 50%,
+    var(--text-muted, #8e8e8e) 75%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: reasoningShimmer 1.8s infinite linear;
+}
+
+@keyframes reasoningShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.reasoning-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.reasoning-content {
+  margin-top: 4px;
+}
+
+.reasoning-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, #c4c7c5);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+
