@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
+/** A single chat thread with its metadata. */
 export interface ChatThread {
   id: string;
   title: string;
@@ -49,6 +50,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   });
 }
 
+/** React hook for managing chat threads with localStorage persistence and server sync. */
 export function useThreads(persist: boolean = true) {
   const [threads, setThreads] = useState<ChatThread[]>(() => persist ? readLocalThreads() : []);
   const [activeThreadId, setActiveThreadIdState] = useState<string>(persist ? readLocalActiveId() : crypto.randomUUID());

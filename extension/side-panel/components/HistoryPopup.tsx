@@ -2,25 +2,41 @@ import React from 'react';
 import { AlignLeft, Trash2, LogOut, LogIn, Puzzle } from 'lucide-react';
 import { LS_ACTIVE } from '../../shared/constants';
 
+/** A single chat thread entry displayed in the history list. */
 interface ChatThread {
+  /** Unique thread ID */
   id: string;
+  /** Human-readable thread title */
   title: string;
+  /** Unix timestamp of thread creation */
   createdAt: number;
 }
 
+/** Props for the HistoryPopup — thread list, auth actions, and plugin navigation. */
 interface HistoryPopupProps {
+  /** All chat threads */
   threads: ChatThread[];
+  /** Currently active thread ID */
   activeThreadId: string;
+  /** Switch to a different thread */
   setActiveThreadId: (id: string) => void;
+  /** Close the popup */
   setShowHistoryPopup: (show: boolean) => void;
+  /** Delete a thread by ID */
   onDeleteThread: (id: string) => void;
+  /** Authenticated user object, or null */
   user: any;
+  /** Initiate sign-in */
   onSignIn: () => void;
+  /** Whether sign-in is in progress */
   signingIn?: boolean;
+  /** Sign the user out */
   onSignOut: () => void;
+  /** Navigate to the plugins management screen */
   onOpenPlugins: () => void;
 }
 
+/** Dropdown popup with MCP Plugins link, sign-in/sign-out, and a scrollable list of recent chat threads. */
 export const HistoryPopup: React.FC<HistoryPopupProps> = ({
   threads,
   activeThreadId,

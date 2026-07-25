@@ -6,17 +6,27 @@ import { formatToolName } from '../utils/toolNames';
 import { ReasoningBlock } from './ReasoningBlock';
 import { ToolCallAccordion } from './ToolCallAccordion';
 
+/** Props for MessageItem — a single message in the chat, including tool calls and approval UI. */
 interface MessageItemProps {
+  /** Message object from the agent */
   msg: any;
+  /** Whether this is the last message in the list */
   isLast: boolean;
+  /** Whether the agent is currently streaming */
   isStreaming: boolean;
+  /** Callback to approve or reject a tool call */
   addToolApprovalResponse: (response: { id: string; approved: boolean }) => void;
+  /** Request regeneration of this message */
   onRegenerate: (messageId: string) => void;
+  /** Replace the message content starting from this point */
   onEditMessage: (messageId: string, newText: string) => void;
+  /** Whether this is the latest assistant message (shows regenerate button) */
   isLatestAssistant?: boolean;
+  /** All messages in the current thread (for context in tool calls) */
   allMessages?: any[];
 }
 
+/** Single chat message — renders user text, assistant markdown, reasoning blocks, tool approvals, and feedback actions. */
 export const MessageItem: React.FC<MessageItemProps> = ({
   msg,
   isLast,
@@ -27,10 +37,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   isLatestAssistant,
   allMessages,
  }) => {
+  /** Whether the user is currently editing this message. */
   const [isEditing, setIsEditing] = useState(false);
+  /** Current text in the edit textarea. */
   const [editText, setEditText] = useState('');
+  /** Whether the message text was just copied to clipboard. */
   const [copied, setCopied] = useState(false);
 
+  /** Copy the message text to clipboard (with fallback for older browsers). */
   const handleCopy = () => {
     const text = msg.parts
       .filter((p: any) => p.type === 'text')
@@ -65,13 +79,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       fallbackCopy(text);
     }
   };
+  /** Whether the message has any non-empty text parts. */
   const hasText = msg.parts.some((p: any) => p.type === 'text' && p.text?.trim());
+  /** Whether to show the feedback row (copy, regenerate) — only for finished assistant messages with text. */
   const showFeedback =
     msg.role === 'assistant' && hasText && !(isLast && isStreaming);
 
+  /** Original text content of the first text part (used for edit comparison). */
   const originalText = msg.parts.find((p: any) => p.type === 'text')?.text || '';
+  /** Whether the edit text differs from the original. */
   const isChanged = editText !== originalText;
 
+  /** Render the inline edit mode with textarea and Cancel/Update buttons. */
   if (isEditing) {
     return (
       <div 
@@ -147,6 +166,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     );
   }
 
+  /** Render the message parts — text (markdown), reasoning blocks, tool-approval cards, and tool-call accordions. */
   return (
     <div className={`message ${msg.role}`}>
       {msg.parts.map((part: any, i: number) => {

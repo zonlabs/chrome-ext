@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 
+/** Extract a hostname from a URL string, returning empty on failure. */
 export function safeUrl(url: string) {
   try { return new URL(url).hostname; } catch { return ''; }
 }
 
+/** Props for the Favicon component. */
 interface FaviconProps {
   url: string;
   size?: number;
   className?: string;
 }
 
+/** Site favicon via DuckDuckGo, with letter fallback for local/errored URLs. */
 export const Favicon: React.FC<FaviconProps> = ({ url, size = 20, className }) => {
   const domain = safeUrl(url);
   const [errored, setErrored] = useState(false);

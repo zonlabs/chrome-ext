@@ -86,6 +86,7 @@ export function ChatView(props: ChatViewProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPluginsPopup]);
 
+  /** Agent connection for the current active thread, used by useAgentChat for message streaming. */
   const agent = useAgent({
     agent: 'ChatAgent',
     name: activeThreadId,
@@ -93,6 +94,7 @@ export function ChatView(props: ChatViewProps) {
     onIdentityChange: () => { },
   });
 
+  /** Stable ref wrapping getSelectedTabs so client tools always read the latest tabs without re-creating. */
   const getSelectedTabsRef = useRef<() => { url: string; title: string }[]>(() => []);
 
   getSelectedTabsRef.current = () => {
@@ -101,12 +103,14 @@ export function ChatView(props: ChatViewProps) {
       .map((t: any) => ({ url: t.url, title: t.title || '' }));
   };
 
+  /** Client-side tool definitions (e.g. getSelectedTabs) passed to the chat agent. */
   const clientTools = useMemo(() => {
     return createClientTools({
       getSelectedTabs: () => getSelectedTabsRef.current()
     });
   }, []);
 
+  /** Execute a client-side tool call triggered by the agent and stream the output back. */
   const handleToolCall = useCallback(async ({ toolCall, addToolOutput }: {
     toolCall: { toolCallId: string; toolName: string; input: unknown };
     addToolOutput: (options: { toolCallId: string; output: unknown }) => void;
@@ -127,6 +131,7 @@ export function ChatView(props: ChatViewProps) {
     });
   }, [clientTools]);
 
+  /** Chat state: message list, send/stop helpers, tool approval, and streaming status from the agent. */
   const { messages, sendMessage, addToolApprovalResponse, status, clearHistory, stop, setMessages, error: chatError } = useAgentChat({
     agent,
     body: { model, pluginsAgentId, userId: user?.id || null, enabledPlugins: enabledPluginIds },
@@ -134,8 +139,10 @@ export function ChatView(props: ChatViewProps) {
     tools: clientTools,
   });
 
+  /** Dismissible error toast message, or null when hidden. */
   const [toastError, setToastError] = useState<string | null>("error");
 
+  /** Show a dismissible error toast for 6 seconds when a chat error occurs. */
   useEffect(() => {
     if (chatError) {
       const errMsg = chatError instanceof Error ? chatError.message : String(chatError);
@@ -143,19 +150,22 @@ export function ChatView(props: ChatViewProps) {
 
       const timer = setTimeout(() => {
         setToastError(null);
-      }, 60000);
+      }, 6000);
       return () => clearTimeout(timer);
     } else {
       setToastError(null);
     }
   }, [chatError]);
 
+  /** Dismiss the error toast manually. */
   const handleDismissToast = useCallback(() => {
     setToastError(null);
   }, []);
 
+  /** Whether the side panel is currently opened as a detached popout window. */
   const popoutMode = new URLSearchParams(window.location.search).has('popout');
 
+  /** Toggle between side-panel and popout window modes. */
   const handleTogglePopout = useCallback(() => {
     if (popoutMode) {
       const params = new URLSearchParams(window.location.search);
@@ -177,8 +187,10 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [popoutMode]);
 
+  /** Text pending to send as an edited message (triggers a new message on next render). */
   const [pendingEdit, setPendingEdit] = useState<{ text: string } | null>(null);
 
+  /** Send the pending edited message as soon as it is set, then clear. */
   useEffect(() => {
     if (pendingEdit) {
       sendMessage({ text: pendingEdit.text });
@@ -186,6 +198,7 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [pendingEdit, sendMessage]);
 
+  /** Listen for chat:title events from the agent to update the thread title. */
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       try {
@@ -199,6 +212,7 @@ export function ChatView(props: ChatViewProps) {
     return () => agent.removeEventListener('message', handleMessage);
   }, [agent, updateActiveThreadTitle]);
 
+  /** Name of the currently active (calling/streaming) tool, or null. */
   const activeTool = useMemo(() => {
     for (const msg of messages) {
       for (const part of msg.parts) {
@@ -213,6 +227,7 @@ export function ChatView(props: ChatViewProps) {
     return null;
   }, [messages]);
 
+  /** Index of the latest assistant message (for targeting regenerate/edit actions). */
   const latestAssistantIdx = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === 'assistant') {
@@ -222,13 +237,16 @@ export function ChatView(props: ChatViewProps) {
     return -1;
   }, [messages]);
 
+  /** Ref for the invisible scroll anchor at the bottom of the message list. */
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  /** Start a new chat thread (no-op if the current thread is already empty). */
   const handleNewChat = useCallback(() => {
     if (messages.length === 0) return;
     _handleThreadNewChat();
   }, [messages, _handleThreadNewChat]);
 
+  /** Submit the current input value as a new message. */
   const handleSubmit = useCallback(() => {
     if (inputValue.trim()) {
       ensureThreadEntry();
@@ -238,6 +256,7 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [inputValue, ensureThreadEntry, sendMessage, setInputValue, inputRef]);
 
+  /** Submit on Enter (without Shift), allowing Shift+Enter for newlines. */
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -245,6 +264,7 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [handleSubmit]);
 
+  /** Populate the input with a suggested prompt text and focus the textarea. */
   const handleSuggestionClick = useCallback((text: string) => {
     setInputValue(text);
     if (inputRef.current) {
@@ -254,6 +274,7 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [setInputValue, inputRef]);
 
+  /** Truncate messages up to the edited one and schedule the replacement text to send. */
   const handleEditMessage = useCallback((messageId: string, newText: string) => {
     setMessages(prev => {
       const idx = prev.findIndex(m => m.id === messageId);
@@ -263,6 +284,7 @@ export function ChatView(props: ChatViewProps) {
     setPendingEdit({ text: newText });
   }, [setMessages]);
 
+  /** Regenerate the last assistant response by re-sending the preceding user message. */
   const handleRegenerateMessage = useCallback((messageId: string) => {
     setMessages(prev => {
       const idx = prev.findIndex(m => m.id === messageId);
@@ -278,12 +300,14 @@ export function ChatView(props: ChatViewProps) {
     });
   }, [setMessages]);
 
+  /** Scroll the message list to the bottom. */
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
+  /** Auto-scroll to bottom whenever messages change. */
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  // FIX: Keep stop button visible during tool-call gaps (status goes 'ready' between multi-step turns)
+  /** Whether the agent is currently streaming a response or waiting on a tool call. */
   const isStreaming = status === 'streaming' || status === 'submitted' || !!activeTool;
 
   return (

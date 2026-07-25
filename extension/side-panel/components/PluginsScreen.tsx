@@ -4,6 +4,7 @@ import { useAgent } from 'agents/react';
 
 import { WORKER_URL } from '../../shared/constants';
 
+/** Pre-configured quick-plugins that can be connected with a single click. */
 const BUILTIN_PLUGINS = [
   {
     id: 'exa',
@@ -31,6 +32,7 @@ const BUILTIN_PLUGINS = [
   },
 ];
 
+/** Build the favicon proxy URL for a given MCP server URL. */
 function getFaviconUrl(serverUrl: string): string {
   try {
     const domain = new URL(serverUrl).hostname;
@@ -40,6 +42,7 @@ function getFaviconUrl(serverUrl: string): string {
   }
 }
 
+/** Extract the hostname from a server URL, falling back to the raw string on parse failure. */
 function getDomain(serverUrl: string): string {
   try {
     return new URL(serverUrl).hostname;
@@ -48,34 +51,55 @@ function getDomain(serverUrl: string): string {
   }
 }
 
+/** An MCP server connected through the agent. */
 interface McpServer {
+  /** Server identifier */
   id: string;
+  /** Human-readable name */
   name: string;
+  /** Server endpoint URL */
   url: string;
+  /** Connection state (ready, authenticating, failed, etc.) */
   state: string;
 }
 
+/** A tool exposed by an MCP server. */
 interface McpTool {
+  /** ID of the server that provides this tool */
   serverId: string;
+  /** Tool name (used by the agent to invoke it) */
   name: string;
+  /** Human-readable description */
   description?: string;
+  /** JSON Schema for the tool's input parameters */
   inputSchema?: any;
 }
 
+/** A resource exposed by an MCP server. */
 interface McpResource {
+  /** ID of the server that provides this resource */
   serverId: string;
+  /** Resource name */
   name: string;
+  /** Resource URI */
   uri: string;
+  /** Human-readable description */
   description?: string;
+  /** MIME type of the resource content */
   mimeType?: string;
 }
 
+/** Props for the PluginsScreen — agent ID for MCP state, user for auth guard, and close callback. */
 interface PluginsScreenProps {
+  /** Agent ID used to connect for MCP state updates */
   agentId: string;
+  /** Authenticated user ID, or null (shows sign-in gate) */
   userId: string | null;
+  /** Navigate back to the chat view */
   onClose: () => void;
 }
 
+/** Convert raw MCP state from the agent into a flat array of McpServer objects. */
 function mcpStateToServers(mcpState: any): McpServer[] {
   return Object.entries(mcpState?.servers ?? {}).map(([id, server]: [string, any]) => ({
     id,
@@ -85,25 +109,40 @@ function mcpStateToServers(mcpState: any): McpServer[] {
   }));
 }
 
+/** Full-screen MCP plugin manager — add, remove, and inspect MCP servers, their tools, and their resources. */
 export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, onClose }) => {
+  /** Connected MCP servers. */
   const [servers, setServers] = useState<McpServer[]>([]);
+  /** Tools exposed by connected servers. */
   const [tools, setTools] = useState<McpTool[]>([]);
+  /** Resources exposed by connected servers. */
   const [resources, setResources] = useState<McpResource[]>([]);
+  /** Active tab: Manage (settings), Tools, or Resources. */
   const [activeTab, setActiveTab] = useState<'settings' | 'tools' | 'resources'>('settings');
 
+  /** Name input for the manual-add form. */
   const [name, setName] = useState('');
+  /** URL input for the manual-add form. */
   const [url, setUrl] = useState('');
+  /** Whether an add-plugin request is in flight. */
   const [loading, setLoading] = useState(false);
+  /** Error message from a failed add/remove operation. */
   const [error, setError] = useState('');
+  /** Plugin awaiting OAuth authorization (shows banner). */
   const [authPending, setAuthPending] = useState<{ name: string; url: string } | null>(null);
+  /** Connection state of the agent (via useAgent callbacks). */
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  /** Set of tool/resource description keys that have been expanded by the user. */
   const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set());
+  /** Domains whose favicons failed to load (show fallback icon). */
   const [failedFavicons, setFailedFavicons] = useState<Set<string>>(new Set());
 
+  /** Mark a favicon as failed so the fallback icon is shown instead. */
   const onFaviconError = (domain: string) => {
     setFailedFavicons(prev => { const next = new Set(prev); next.add(domain); return next; });
   };
 
+  /** Toggle the expanded/collapsed state of a tool description. */
   const toggleDesc = (key: string) => {
     setExpandedDescs(prev => {
       const next = new Set(prev);
@@ -114,6 +153,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
 
   const MAX_DESC_LEN = 80;
 
+  /** Agent connection for MCP state streaming — receives server, tool, and resource updates. */
   const agent = useAgent({
     agent: 'ChatAgent',
     name: agentId,
@@ -130,6 +170,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
     },
   });
 
+  /** Add a new MCP server via the agent's addPlugin RPC. */
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !url.trim()) return;
@@ -155,6 +196,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
     }
   };
 
+  /** Remove a connected MCP server via the agent's removePlugin RPC. */
   const handleRemove = async (serverId: string) => {
     try {
       await agent.call("removePlugin", [serverId]);
@@ -163,13 +205,14 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
     }
   };
 
-  // Find server name by serverId
+  /** Look up the human-readable name for a server ID. */
   const getServerName = (serverId: string) => {
     const found = servers.find(s => s.id === serverId);
     if (found) return found.name;
     return serverId;
   };
 
+  /** Render a sign-in gate when the user is not authenticated. */
   if (!userId) {
     return (
       <div className="plugins-page-container">

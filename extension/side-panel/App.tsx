@@ -8,31 +8,45 @@ import { ChatSkeleton } from './components/ChatSkeleton';
 import { getPluginsAgentId } from './utils/agentId';
 import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../shared/constants';
 
-// ── Main App ──
+/** Main application component — orchestrates state, side-effects, and view routing (chat vs plugins). */
 export default function App() {
   // ── Tab state ──
+  /** Active browser tabs from the canvas (background pages). */
   const [tabs, setTabs]               = useState<any[]>([]);
+  /** URLs the user has selected to share as context. */
   const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
+  /** URL of the currently active browser tab. */
   const [activeTabUrl, setActiveTabUrl]         = useState<string>('');
+  /** Title of the currently active browser tab. */
   const [activeTabTitle, setActiveTabTitle]     = useState<string>('');
+  /** LLM-generated suggestions for the active tab content. */
   const [activeTabSuggestions, setActiveTabSuggestions] = useState<string[]>([]);
+  /** Whether LLM suggestions are currently being fetched. */
   const [suggestionsLoading, setSuggestionsLoading]     = useState(false);
+  /** Authenticated user object, or null if signed out. */
   const [user, setUser]               = useState<any>(null);
 
-  // ── Model state ──
+  /** Currently selected model ID, persisted to and restored from localStorage. */
   const [model, setModel] = useState(() => {
     const saved = localStorage.getItem(LS_MODEL);
     return saved && VALID_MODELS.includes(saved) ? saved : DEFAULT_MODEL;
   });
 
-  // ── Popup visibility ──
+  /** Whether the tab-attachment popup is visible. */
   const [showPopup,        setShowPopup]        = useState(false);
+  /** Whether the selected-tabs detail panel is expanded. */
   const [showSelected,     setShowSelected]     = useState(false);
+  /** Whether the model selector dropdown is visible. */
   const [showModelPopup,   setShowModelPopup]   = useState(false);
+  /** Current view — either the chat interface or the plugins management screen. */
   const [activeView, setActiveView] = useState<'chat' | 'plugins'>('chat');
+  /** Whether the history / menu popup is visible. */
   const [showHistoryPopup, setShowHistoryPopup] = useState(false);
+  /** Whether a sign-in request is currently in flight. */
   const [signingIn, setSigningIn] = useState(false);
+  /** MCP plugins reported by the backend after connecting. */
   const [availablePlugins, setAvailablePlugins] = useState<any[]>([]);
+  /** IDs of plugins the user has manually disabled, persisted to localStorage. */
   const [disabledPlugins, setDisabledPlugins] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(LS_DISABLED_PLUGINS);
@@ -42,15 +56,20 @@ export default function App() {
     }
   });
 
-  // ── Input state ──
+  /** Current value of the message input textarea. */
   const [inputValue, setInputValue] = useState('');
+  /** Ref for the message input textarea element. */
   const inputRef          = useRef<HTMLTextAreaElement>(null);
+  /** Ref for the tab-attachment popup (used for outside-click detection). */
   const attachPopupRef    = useRef<HTMLDivElement>(null);
+  /** Ref for the selected-tabs detail panel (used for outside-click detection). */
   const selectedPanelRef  = useRef<HTMLDivElement>(null);
+  /** Ref for the model dropdown (used for outside-click detection). */
   const modelDropdownRef  = useRef<HTMLDivElement>(null);
+  /** Ref for the history popup (used for outside-click detection). */
   const historyRef        = useRef<HTMLDivElement>(null);
 
-  // ── Thread management (via KV-backed hook) ──
+  /** Thread CRUD and active-thread state from the KV-backed useThreads hook. */
   const {
     threads,
     activeThreadId,
@@ -62,10 +81,11 @@ export default function App() {
     ensureThreadEntry,
   } = useThreads(!!user);
 
-  // ── Derived ──
+  /** Agent ID derived from the current user for plugin registration — key+guard avoids "" identity transitions. */
   const pluginsAgentId = useMemo(() => getPluginsAgentId(user), [user?.id]);
 
   // Subscribe to MCP updates on pluginsAgentId — key+guard avoids "" identity transitions
+  /** Receive MCP state updates from the backend and map them to the available plugins list. */
   const handleMcpUpdate = useCallback((mcpState: any) => {
     console.log('[App] MCP update received:', mcpState);
     if (mcpState?.servers) {
@@ -79,6 +99,7 @@ export default function App() {
     }
   }, []);
 
+  /** Toggle a plugin ID in/out of the disabled set and persist to localStorage. */
   const togglePlugin = (id: string) => {
     setDisabledPlugins(prev => {
       const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
@@ -87,17 +108,19 @@ export default function App() {
     });
   };
 
+  /** Human-readable label for the currently selected model. */
   const selectedModelLabel = useMemo(() => {
     const found = MODELS_DATA.find(m => m.value === model);
     return found ? found.label : model.split('/').pop()!;
   }, [model]);
 
+  /** Icon string for the currently selected model. */
   const selectedModelIcon = useMemo(() => {
     const found = MODELS_DATA.find(m => m.value === model);
     return found ? found.icon : '';
   }, [model]);
 
-  // ── Effects ──
+  /** On mount: fetch canvas tabs, auth status, active tab info, and generate LLM suggestions for the active tab. */
   useEffect(() => {
     const fetchTabs = () => {
       chrome.runtime.sendMessage({ type: 'canvas:get' }, (response) => {
@@ -202,7 +225,7 @@ export default function App() {
     return () => { chrome.runtime.onMessage.removeListener(handleMessage); };
   }, []);
 
-  // Close popups on outside click
+  /** Close popups (attach, selected, model, history) when user clicks outside their boundaries. */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showPopup && attachPopupRef.current && !attachPopupRef.current.contains(event.target as Node)) {
@@ -230,6 +253,7 @@ export default function App() {
   }, [showPopup, showSelected, showModelPopup, showHistoryPopup]);
 
   // ── Handlers ──
+  /** Initiate Google sign-in flow via the background script. */
   const handleSignIn  = () => {
     setSigningIn(true);
     chrome.runtime.sendMessage({ type: 'auth:signin' },  (r) => {
@@ -237,22 +261,25 @@ export default function App() {
       if (r?.user) setUser(r.user);
     });
   };
+  /** Sign the user out, clear all local state, and reload. */
   const handleSignOut = () => chrome.runtime.sendMessage({ type: 'auth:signout' }, () => {
     setUser(null);
     localStorage.clear();
     window.location.reload();
   });
 
+  /** Persist the selected model to localStorage and close the dropdown. */
   const handleSelectModel = (val: string) => {
     setModel(val);
     localStorage.setItem(LS_MODEL, val);
     setShowModelPopup(false);
   };
 
+  /** Add or remove a URL from the user's selected set. */
   const toggleUrl = (url: string) =>
     setSelectedUrls(prev => prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]);
 
-  // ── Render ──
+  /** Render the Plugins screen when activeView is 'plugins'. */
   if (activeView === 'plugins') {
     return (
       <PluginsScreen

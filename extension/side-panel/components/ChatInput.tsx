@@ -4,7 +4,7 @@ import { Tab, ModelTier, ModelEntry } from '../../shared/types';
 import { ModelSelector } from './ModelSelector';
 import { Favicon, safeUrl } from './Favicon';
 
-/* ── small local helpers ── */
+/** Small red circle with a white check — used to indicate a selected tab in the attach popup. */
 const CircleCheckIcon = () => (
   <div
     style={{
@@ -22,6 +22,7 @@ const CircleCheckIcon = () => (
   </div>
 );
 
+/** Chevron icon that flips direction based on the expanded state. */
 const ChevronIcon = ({ isUp }: { isUp: boolean }) => (
   <ChevronDown
     size={14}
@@ -29,47 +30,71 @@ const ChevronIcon = ({ isUp }: { isUp: boolean }) => (
   />
 );
 
+/** Label and color mapping for each model tier displayed in the picker. */
 const TIER_CONFIG: Record<ModelTier, { label: string; color: string }> = {
   basic:        { label: 'Basic',        color: 'var(--text-muted, #8e8e8e)' },
   intermediate: { label: 'Intermediate', color: 'var(--text-secondary, #b0b0b0)' },
   advanced:     { label: 'Advanced',     color: 'var(--text-primary, #ffffff)' },
 };
 
+/** Props for the ChatInput component — textarea state, attach popup, selected-tabs panel, and model selector. */
 interface ChatInputProps {
-  /* textarea state */
+  /** Current textarea value */
   inputValue: string;
+  /** Setter for textarea value */
   setInputValue: (v: string) => void;
+  /** Ref attached to the textarea element */
   inputRef: RefObject<HTMLTextAreaElement | null>;
+  /** Whether the agent is currently streaming a response */
   isStreaming: boolean;
+  /** Called when the user submits a message */
   onSubmit: () => void;
+  /** Called on keydown in the textarea */
   onKeyDown: (e: React.KeyboardEvent) => void;
 
-  /* attach popup */
+  /** Whether the tab-attachment popup is visible */
   showPopup: boolean;
+  /** Toggle for the attach popup */
   setShowPopup: (v: boolean) => void;
+  /** Ref for the attach popup DOM node */
   attachPopupRef: RefObject<HTMLDivElement | null>;
+  /** All open browser tabs */
   tabs: Tab[];
+  /** Currently selected tab URLs */
   selectedUrls: string[];
+  /** URL of the active tab */
   activeTabUrl: string;
+  /** Toggle a URL in/out of the selected set */
   onToggleUrl: (url: string) => void;
 
-  /* selected tabs inline panel */
+  /** Whether the selected-tabs detail panel is expanded */
   showSelected: boolean;
+  /** Toggle the detail panel */
   setShowSelected: (v: boolean) => void;
+  /** Ref for the detail panel DOM node */
   selectedPanelRef: RefObject<HTMLDivElement | null>;
 
-  /* model dropdown */
+  /** Whether the model dropdown is visible */
   showModelPopup: boolean;
+  /** Toggle the model dropdown */
   setShowModelPopup: (v: boolean) => void;
+  /** Ref for the model dropdown DOM node */
   modelDropdownRef: RefObject<HTMLDivElement | null>;
+  /** Currently selected model ID */
   model: string;
+  /** All available model entries */
   modelsData: ModelEntry[];
+  /** Human-readable label for the selected model */
   selectedModelLabel: string;
+  /** Icon string for the selected model */
   selectedModelIcon: string;
+  /** Called when a model is selected */
   onSelectModel: (val: string) => void;
+  /** Called to stop the ongoing generation */
   onStop: () => void;
 }
 
+/** Message input area with tab-attachment popup, selected-tabs panel, model dropdown, and send/stop button. */
 export const ChatInput: React.FC<ChatInputProps> = ({
   inputValue,
   setInputValue,

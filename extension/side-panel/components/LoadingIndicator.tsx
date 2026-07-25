@@ -1,5 +1,6 @@
 import React from 'react';
 
+/** Animated wave bars indicating the assistant is generating a response. */
 export const LoadingIndicator: React.FC = () => {
   return (
     <div className="loading-indicator">

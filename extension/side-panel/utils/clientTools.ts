@@ -1,6 +1,7 @@
 import { AITool } from '@cloudflare/ai-chat/react';
 import { ClientToolsContext } from '../../shared/types';
 
+/** Build the set of client-side tools (getTabContent, getActiveTabs) available to the AI. */
 export function createClientTools(context: ClientToolsContext): Record<string, AITool<any, any>> {
   return {
     getTabContent: {

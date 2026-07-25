@@ -1,3 +1,4 @@
+/** Clean a raw tool identifier into a human-readable name. */
 export function formatToolName(raw: string): string {
   if (!raw || typeof raw !== 'string') return 'Unknown Tool';
 
@@ -31,6 +32,7 @@ export function formatToolName(raw: string): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
+/** Return a short human-readable summary of a tool call's state and result. */
 export function getToolSummary(rawName: string, args: any, output: any, state: string): string {
   if (!rawName) return 'Running capability';
   const name = rawName.toLowerCase();
@@ -91,6 +93,7 @@ export function getToolSummary(rawName: string, args: any, output: any, state: s
   return `Called ${formatted}`;
 }
 
+/** Return a Lucide icon name for the given tool and its execution state. */
 export function getToolIcon(rawName: string, state: string) {
   let icon: string;
   if (state === 'output-error') icon = 'AlertCircle';

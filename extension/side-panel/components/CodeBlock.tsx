@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Check, Copy, Download } from 'lucide-react';
 
+/** Props for the CodeBlock component. */
 interface CodeBlockProps {
   language: string;
   code: string;
 }
 
-// --- Syntax Highlighter ---
+/** Tokenize and highlight code lines with keyword/string/number spans. */
 function highlightCode(code: string, language: string): React.ReactNode[] {
   const lines = code.split('\n');
   return lines.map((line, lineIdx) => {
@@ -62,7 +63,7 @@ function highlightCode(code: string, language: string): React.ReactNode[] {
   });
 }
 
-// --- Component ---
+/** Renders syntax-highlighted code with copy and download actions. */
 export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
   const [copied, setCopied] = useState(false);
 

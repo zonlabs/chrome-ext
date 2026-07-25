@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, ChevronDown, ChevronRight } from 'lucide-react';
 
+/** Props for the ReasoningBlock component. */
 interface ReasoningBlockProps {
   text: string;
   isStreaming: boolean;
 }
 
+/** Collapsible block showing the model's chain-of-thought reasoning text. */
 export const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ text, isStreaming }) => {
   const [expanded, setExpanded] = useState(false);
   const [elapsed, setElapsed] = useState(0);

@@ -2,6 +2,7 @@ import React, { useMemo, useState, RefObject } from 'react';
 import { Check, Search, ChevronDown } from 'lucide-react';
 import { ModelEntry } from '../../shared/types';
 
+/** Props for the ModelSelector component. */
 interface ModelSelectorProps {
   showModelPopup: boolean;
   setShowModelPopup: (v: boolean) => void;
@@ -13,6 +14,7 @@ interface ModelSelectorProps {
   onSelectModel: (val: string) => void;
 }
 
+/** Dropdown popup to search and select an LLM model by provider. */
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
   showModelPopup,
   setShowModelPopup,

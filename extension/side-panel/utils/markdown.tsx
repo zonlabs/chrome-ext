@@ -72,6 +72,7 @@ function renderTextBlocks(text: string): React.ReactNode[] {
   return blocks;
 }
 
+/** Render markdown string to React elements with code and inline style support. */
 export function renderMarkdown(text: string): React.ReactNode {
   const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
   const elements: React.ReactNode[] = [];

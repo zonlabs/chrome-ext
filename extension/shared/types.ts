@@ -1,5 +1,6 @@
 import React from 'react';
 
+/** Data for a scraped product listing. */
 export interface ProductData {
   name: string;
   price: number;
@@ -13,12 +14,14 @@ export interface ProductData {
   description: string;
 }
 
+/** State tracking open product tabs in the canvas. */
 export interface CanvasState {
   tabs: Record<number, ProductData>;
   activeTabId: number | null;
 }
 
 
+/** A single price observation at a given time and store. */
 export interface PricePoint {
   price: number;
   currency: string;
@@ -27,12 +30,14 @@ export interface PricePoint {
   url: string;
 }
 
+/** Authenticated premium user info. */
 export interface PremiumUser {
   id: string;
   email: string;
   plan: 'free' | 'premium';
 }
 
+/** Represents a browser tab. */
 export interface Tab {
   url: string;
   title?: string;
@@ -40,8 +45,10 @@ export interface Tab {
   tabId?: number;
 }
 
+/** Difficulty/capability tier label for a model. */
 export type ModelTier = 'basic' | 'intermediate' | 'advanced';
 
+/** A selectable model's display info. */
 export interface ModelEntry {
   value: string;
   label: string;
@@ -50,10 +57,12 @@ export interface ModelEntry {
   tier: ModelTier;
 }
 
+/** Context providing helper methods for client-side tools. */
 export interface ClientToolsContext {
   getSelectedTabs: () => { url: string; title: string }[];
 }
 
+/** All props passed to the ChatView component. */
 export interface ChatViewProps {
   activeThreadId: string;
   activeThreadTitle: string;

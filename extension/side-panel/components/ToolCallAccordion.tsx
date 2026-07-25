@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, AlertCircle, Wrench, Search, Globe, List, FileText, AppWindow } from 'lucide-react';
 import { getToolSummary, formatToolName } from '../utils/toolNames';
 
+/** Props for the ToolCallAccordion component. */
 interface ToolCallAccordionProps {
   part: any;
   allParts?: any[];
   allMessages?: any[];
 }
 
+/** Map a tool name to the appropriate Lucide icon based on its category. */
 function getToolIconComponent(rawName: string, state: string) {
   if (state === 'output-error') return <AlertCircle size={13} style={{ color: '#ff6b6b' }} />;
   if (!rawName) return <Wrench size={13} />;
@@ -20,6 +22,7 @@ function getToolIconComponent(rawName: string, state: string) {
   return <Wrench size={13} />;
 }
 
+/** Expandable accordion displaying a tool call's name, arguments, and result. */
 export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allParts, allMessages }) => {
   const [isOpen, setIsOpen] = useState(false);
 

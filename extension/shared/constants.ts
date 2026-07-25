@@ -2,17 +2,24 @@ import { ModelEntry } from './types';
 
 declare const __BUILD_ENV__: string | undefined;
 
+/** Worker API base URL — production or local dev. */
 export const WORKER_URL = __BUILD_ENV__ === 'production'
   ? 'https://api.linkos.in'
   : 'http://127.0.0.1:8787';
 
+/** LocalStorage key for saved chat threads. */
 export const LS_THREADS = 'obot_chats';
+/** LocalStorage key for the active thread ID. */
 export const LS_ACTIVE  = 'obot_active_thread_id';
+/** LocalStorage key for disabled plugin IDs. */
 export const LS_DISABLED_PLUGINS = 'obot_disabled_plugins';
+/** LocalStorage key for the selected model. */
 export const LS_MODEL = 'obot_model';
 
+/** Default LLM model ID. */
 export const DEFAULT_MODEL = '@cf/meta/llama-3.2-3b-instruct';
 
+/** Supported model IDs that can be selected by the user. */
 export const VALID_MODELS = [
   '@cf/meta/llama-3.2-1b-instruct',
   '@cf/google/gemma-2b-it-lora',
@@ -27,6 +34,7 @@ export const VALID_MODELS = [
   '@cf/openai/gpt-oss-120b',
 ];
 
+/** Display metadata for each available model. */
 export const MODELS_DATA: ModelEntry[] = [
   { value: '@cf/meta/llama-3.2-1b-instruct',       label: 'Llama 3.2 1B',   desc: 'Meta Tiny Text Instruct (fastest, cheapest)',   icon: 'meta.svg',   tier: 'basic' },
   { value: '@cf/google/gemma-2b-it-lora',           label: 'Gemma 2B LoRA',  desc: 'Google Lightweight LoRA Adapter (2B)',          icon: 'google.svg', tier: 'basic' },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { SquareArrowOutUpRight } from 'lucide-react';
 
+/** Props for the WelcomeScreen component. */
 interface WelcomeScreenProps {
   user?: any;
   onSuggestionClick?: (text: string) => void;
@@ -12,6 +13,7 @@ interface WelcomeScreenProps {
   suggestionsLoading?: boolean;
 }
 
+/** Extract a human-readable domain label from a URL. */
 function getContextLabel(url: string, title: string): string {
   try {
     const host = new URL(url).hostname.replace(/^www\./, '');
@@ -20,10 +22,12 @@ function getContextLabel(url: string, title: string): string {
   return title || 'Current tab';
 }
 
+/** Placeholder shimmer chip shown while suggestions load. */
 const SkeletonChip = () => (
   <div className="skeleton-glow suggestion-chip-skeleton" />
 );
 
+/** Full-screen greeting with sign-in, context label, and LLM-suggested prompts. */
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onSuggestionClick,
   onSignIn,
