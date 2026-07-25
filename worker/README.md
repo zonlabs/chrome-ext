@@ -1,6 +1,6 @@
-# Obot — Backend
+# Obot — Worker
 
-Cloudflare Workers backend for the Obot AI assistant.
+Cloudflare Workers backend (worker) for the Obot AI assistant.
 
 ## Stack
 
@@ -71,7 +71,7 @@ Required bindings (configured in `wrangler.jsonc`):
 ## Development
 
 ```bash
-cd backend
+cd worker
 npm run dev            # wrangler dev
 npm run migrate        # D1 migrations
 ```
