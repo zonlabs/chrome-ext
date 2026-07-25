@@ -1,0 +1,79 @@
+name: Release Extension
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'extension/package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Extract extension version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./extension/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extension version is $VERSION"
+
+      - name: Check if git tag already exists
+        id: check_tag
+        run: |
+          TAG="ext-v${{ steps.get_version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Skipping release creation."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies and build extension
+        if: steps.check_tag.outputs.exists != 'true'
+        run: |
+          cd extension
+          npm ci
+          npm run build
+
+      - name: Package extension into ZIP
+        if: steps.check_tag.outputs.exists != 'true'
+        run: |
+          cd extension
+          ZIP_NAME="obot-extension-v${{ steps.get_version.outputs.version }}.zip"
+          zip -r "../$ZIP_NAME" manifest.json icons dist side-panel
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "ext-v${{ steps.get_version.outputs.version }}"
+          name: "Obot Extension v${{ steps.get_version.outputs.version }}"
+          body: |
+            ## Obot Chrome Extension v${{ steps.get_version.outputs.version }}
+            
+            ### How to Install:
+            1. Download `obot-extension-v${{ steps.get_version.outputs.version }}.zip` attached below.
+            2. Unzip/extract the downloaded file to a folder on your computer.
+            3. Open Google Chrome and navigate to `chrome://extensions`.
+            4. Enable **Developer mode** (toggle in the top right corner).
+            5. Click **Load unpacked** and select the extracted extension folder.
+          files: "obot-extension-v${{ steps.get_version.outputs.version }}.zip"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
