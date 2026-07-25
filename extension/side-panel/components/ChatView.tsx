@@ -86,13 +86,15 @@ export function ChatView(props: ChatViewProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPluginsPopup]);
 
-  /** Agent connection for the current active thread, used by useAgentChat for message streaming. */
-  const agent = useAgent({
+  /** Memoized agent configuration object — ensures useAgent returns a stable connection instance across renders. */
+  const agentOptions = useMemo(() => ({
     agent: 'ChatAgent',
     name: activeThreadId,
     host: WORKER_URL,
-    onIdentityChange: () => { },
-  });
+  }), [activeThreadId]);
+
+  /** Agent connection for the current active thread. */
+  const agent = useAgent(agentOptions);
 
   /** Stable ref wrapping getSelectedTabs so client tools always read the latest tabs without re-creating. */
   const getSelectedTabsRef = useRef<() => { url: string; title: string }[]>(() => []);
@@ -137,23 +139,38 @@ export function ChatView(props: ChatViewProps) {
     body: { model, pluginsAgentId, userId: user?.id || null, enabledPlugins: enabledPluginIds },
     onToolCall: handleToolCall,
     tools: clientTools,
+    onData: (data: any) => {
+      if (data?.type === 'chat:title' && data?.title) {
+        updateActiveThreadTitle(data.title);
+      }
+    },
   });
 
   /** Dismissible error toast message, or null when hidden. */
-  const [toastError, setToastError] = useState<string | null>("error");
+  const [toastError, setToastError] = useState<string | null>(null);
+
+  /** Listen for broadcasted chat:title events from the agent backend to update the thread title. */
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'chat:title' && data.title) {
+          updateActiveThreadTitle(data.title);
+        }
+      } catch { }
+    }
+    agent.addEventListener('message', handleMessage);
+    return () => agent.removeEventListener('message', handleMessage);
+  }, [agent, updateActiveThreadTitle]);
 
   /** Show a dismissible error toast for 6 seconds when a chat error occurs. */
   useEffect(() => {
     if (chatError) {
-      const errMsg = chatError instanceof Error ? chatError.message : String(chatError);
-      setToastError(errMsg);
-
+      setToastError(chatError instanceof Error ? chatError.message : String(chatError));
       const timer = setTimeout(() => {
         setToastError(null);
       }, 6000);
       return () => clearTimeout(timer);
-    } else {
-      setToastError(null);
     }
   }, [chatError]);
 
@@ -197,20 +214,6 @@ export function ChatView(props: ChatViewProps) {
       setPendingEdit(null);
     }
   }, [pendingEdit, sendMessage]);
-
-  /** Listen for chat:title events from the agent to update the thread title. */
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'chat:title') {
-          updateActiveThreadTitle(data.title);
-        }
-      } catch { }
-    }
-    agent.addEventListener('message', handleMessage);
-    return () => agent.removeEventListener('message', handleMessage);
-  }, [agent, updateActiveThreadTitle]);
 
   /** Name of the currently active (calling/streaming) tool, or null. */
   const activeTool = useMemo(() => {
