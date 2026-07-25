@@ -39,6 +39,7 @@ export function ChatView(props: ChatViewProps) {
     setShowModelPopup,
     showHistoryPopup,
     setShowHistoryPopup,
+    signingIn,
     inputValue,
     setInputValue,
     inputRef,
@@ -297,6 +298,7 @@ export function ChatView(props: ChatViewProps) {
                 onDeleteThread={handleDeleteThread}
                 user={user}
                 onSignIn={onSignIn}
+                signingIn={signingIn}
                 onSignOut={onSignOut}
                 onOpenPlugins={onOpenPlugins}
               />
@@ -325,6 +327,7 @@ export function ChatView(props: ChatViewProps) {
             user={user}
             onSuggestionClick={handleSuggestionClick}
             onSignIn={onSignIn}
+            signingIn={signingIn}
             activeTabUrl={activeTabUrl}
             activeTabTitle={activeTabTitle}
             llmSuggestions={activeTabSuggestions}

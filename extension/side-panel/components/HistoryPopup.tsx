@@ -16,6 +16,7 @@ interface HistoryPopupProps {
   onDeleteThread: (id: string) => void;
   user: any;
   onSignIn: () => void;
+  signingIn?: boolean;
   onSignOut: () => void;
   onOpenPlugins: () => void;
 }
@@ -28,6 +29,7 @@ export const HistoryPopup: React.FC<HistoryPopupProps> = ({
   onDeleteThread,
   user,
   onSignIn,
+  signingIn,
   onSignOut,
   onOpenPlugins,
 }) => {
@@ -64,13 +66,14 @@ export const HistoryPopup: React.FC<HistoryPopupProps> = ({
         ) : (
           <button
             className="history-popup-menu-item"
+            disabled={signingIn}
             onClick={() => {
               onSignIn();
               setShowHistoryPopup(false);
             }}
           >
             <LogIn size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-            <span className="history-popup-menu-item-text">Sign In with Google</span>
+            <span className="history-popup-menu-item-text">{signingIn ? 'Signing in...' : 'Sign In with Google'}</span>
           </button>
         )}
       </div>

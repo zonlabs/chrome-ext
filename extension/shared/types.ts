@@ -71,6 +71,7 @@ export interface ChatViewProps {
   activeTabTitle: string;
   activeTabSuggestions: string[];
   suggestionsLoading: boolean;
+  signingIn: boolean;
   showPopup: boolean;
   setShowPopup: (v: boolean) => void;
   showSelected: boolean;

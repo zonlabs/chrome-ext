@@ -31,6 +31,7 @@ export default function App() {
   const [showModelPopup,   setShowModelPopup]   = useState(false);
   const [activeView, setActiveView] = useState<'chat' | 'plugins'>('chat');
   const [showHistoryPopup, setShowHistoryPopup] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [availablePlugins, setAvailablePlugins] = useState<any[]>([]);
   const [disabledPlugins, setDisabledPlugins] = useState<string[]>(() => {
     try {
@@ -229,7 +230,13 @@ export default function App() {
   }, [showPopup, showSelected, showModelPopup, showHistoryPopup]);
 
   // ── Handlers ──
-  const handleSignIn  = () => chrome.runtime.sendMessage({ type: 'auth:signin' },  (r) => { if (r?.user) setUser(r.user); });
+  const handleSignIn  = () => {
+    setSigningIn(true);
+    chrome.runtime.sendMessage({ type: 'auth:signin' },  (r) => {
+      setSigningIn(false);
+      if (r?.user) setUser(r.user);
+    });
+  };
   const handleSignOut = () => chrome.runtime.sendMessage({ type: 'auth:signout' }, () => {
     setUser(null);
     localStorage.clear();
@@ -303,6 +310,7 @@ export default function App() {
         selectedModelIcon={selectedModelIcon}
         onToggleUrl={toggleUrl}
         onSelectModel={handleSelectModel}
+        signingIn={signingIn}
         onSignIn={handleSignIn}
         onSignOut={handleSignOut}
         onOpenPlugins={() => setActiveView('plugins')}

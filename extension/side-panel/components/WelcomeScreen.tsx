@@ -2,9 +2,10 @@ import React from 'react';
 import { SquareArrowOutUpRight } from 'lucide-react';
 
 interface WelcomeScreenProps {
-  onSuggestionClick: (text: string) => void;
+  user?: any;
+  onSuggestionClick?: (text: string) => void;
   onSignIn?: () => void;
-  user?: { name?: string } | null;
+  signingIn?: boolean;
   activeTabUrl?: string;
   activeTabTitle?: string;
   llmSuggestions?: string[];
@@ -26,6 +27,7 @@ const SkeletonChip = () => (
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onSuggestionClick,
   onSignIn,
+  signingIn,
   user,
   activeTabUrl = '',
   activeTabTitle = '',
@@ -50,9 +52,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           {!user && (
             <>
               <span className="welcome-context-divider">|</span>
-              <button className="welcome-signin-btn" onClick={onSignIn}>
+              <button className="welcome-signin-btn" onClick={onSignIn} disabled={signingIn}>
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" width="16" height="16" />
-                Sign In
+                {signingIn ? 'Signing in...' : 'Sign In'}
               </button>
             </>
           )}
@@ -60,9 +62,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       )}
 
       {!user && !contextLabel && (
-        <button className="welcome-signin-btn" onClick={onSignIn}>
+        <button className="welcome-signin-btn" onClick={onSignIn} disabled={signingIn}>
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" width="16" height="16" />
-          Sign In
+          {signingIn ? 'Signing in...' : 'Sign In'}
         </button>
       )}
 

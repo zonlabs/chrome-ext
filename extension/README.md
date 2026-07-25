@@ -63,8 +63,22 @@ Built-in quick-connect plugins: Exa Search, Mem0, Apify, Consensus. Custom MCP s
 
 ```bash
 cd extension
-npm run build       # esbuild bundles for side panel, service worker, content script
-npm run watch       # Watch mode for side panel only
+npm run build       # Production bundle → connects to deployed worker
+npm run watch       # Dev watch mode → connects to localhost:8788
+```
+
+`WORKER_URL` in `shared/constants.ts` switches based on `__BUILD_ENV__`:
+- `build` sets `__BUILD_ENV__=production` → uses `https://api.linkos.in`
+- `watch` leaves it undefined → uses `http://127.0.0.1:8788`
+
+For local development, run the worker alongside:
+
+```bash
+# Terminal 1 — worker
+cd worker && npm run dev    # wrangler dev on :8788
+
+# Terminal 2 — extension
+cd extension && npm run watch
 ```
 
 ## Load in Chrome

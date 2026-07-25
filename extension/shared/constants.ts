@@ -1,12 +1,8 @@
 import { ModelEntry } from './types';
 
-declare const process: {
-  env: {
-    NODE_ENV?: string;
-  };
-};
+declare const __BUILD_ENV__: string | undefined;
 
-export const WORKER_URL = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'
+export const WORKER_URL = __BUILD_ENV__ === 'production'
   ? 'https://api.linkos.in'
   : 'http://127.0.0.1:8787';
 

@@ -4,6 +4,7 @@ import { createCodeTool } from "@cloudflare/codemode/ai";
 import { DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet } from "ai";
+import { createBrowserTools } from "agents/browser/ai";
 
 import { Env } from "./db/schema";
 import { McpProxy } from "./mcp-proxy";
@@ -11,8 +12,22 @@ import { McpProxy } from "./mcp-proxy";
 const DEFAULT_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
 function buildSystemPrompt(): string {
   return "You are Obot, a helpful assistant embedded in the user's browser. " +
-    "Tools available: getActiveTabs (list open tabs), getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length). " +
+    "Tools available:\n" +
+    "- getActiveTabs (list open tabs)\n" +
+    "- getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length)\n" +
+    "- browser_search (query the CDP spec to discover domains, commands, events, and types)\n" +
+    "- browser_execute (run arbitrary CDP commands against a live browser session using a `cdp` helper)\n\n" +
     "Always call getTabContent on the active tab URL when the user asks for information about the current page. " +
+    "If you need to interact with a page dynamically (e.g. click, screenshot, capture rendered HTML, inspect DOM, debug frontend), use the browser_execute and browser_search tools. " +
+    "Inside browser_execute, you write JavaScript code containing an async arrow function, which gets a `cdp` helper. E.g. to get a page: \n" +
+    "async () => {\n" +
+    "  const { targetId } = await cdp.send('Target.createTarget', { url: 'https://example.com' });\n" +
+    "  const sessionId = await cdp.attachToTarget(targetId);\n" +
+    "  const { root } = await cdp.send('DOM.getDocument', {}, { sessionId });\n" +
+    "  const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId: root.nodeId }, { sessionId });\n" +
+    "  await cdp.send('Target.closeTarget', { targetId });\n" +
+    "  return outerHTML;\n" +
+    "}\n\n" +
     "For plugin operations (search, database queries, etc.), use the codemode tool to write JavaScript " +
     "that calls the available functions on the `codemode` object.";
 }
@@ -21,20 +36,13 @@ export class ChatAgent extends AIChatAgent<Env> {
   private _userId: string | null = null;
 
   async onStart() {
+    if (this.name.startsWith('plugins-user')) {
+      this.mcp.configureOAuthCallback({
+        successRedirect: '/api/auth/callback'
+      });
+    }
   }
 
-  override async onRequest(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname.endsWith("/callback")) {
-      try {
-        await this.mcp.handleCallbackRequest(request);
-        return Response.redirect(`${url.origin}/`, 302);
-      } catch (err) {
-        return new Response(`Callback failed: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
-      }
-    }
-    return new Response("Not found", { status: 404 });
-  }
 
   @callable()
   listPlugins() {
@@ -148,7 +156,12 @@ export class ChatAgent extends AIChatAgent<Env> {
 
       const executor = new DynamicWorkerExecutor({ loader: this.env.LOADER });
       const codemode = createCodeTool({ tools: mcpTools, executor });
-      const tools = { ...clientTools, codemode };
+      const browserTools = createBrowserTools({
+        ctx: this.ctx,
+        browser: this.env.BROWSER,
+        loader: this.env.LOADER,
+      });
+      const tools = { ...clientTools, codemode, ...browserTools };
 
       const result = streamText({
         model: workersai(modelName),

@@ -2,7 +2,7 @@
   "name": "obot-extension",
   "private": true,
   "scripts": {
-    "build": "esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --define:process.env.NODE_ENV=\\\"production\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:process.env.NODE_ENV=\\\"production\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:process.env.NODE_ENV=\\\"production\\\"",
+    "build": "esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"production\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"production\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"production\\\"",
     "watch": "esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --watch"
   },
   "dependencies": {

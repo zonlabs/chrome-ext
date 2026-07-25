@@ -4,3 +4,4 @@ extension/dist/
 .wrangler/
 .dev.vars
 **/.dev.vars
+extension-key.pem
