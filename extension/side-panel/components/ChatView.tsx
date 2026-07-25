@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
-import { SquarePen, MoreVertical, PictureInPicture2, CircleX, Settings2, Check } from 'lucide-react';
+import { SquarePen, MoreVertical, PictureInPicture2, CircleX, Settings2, Check, X } from 'lucide-react';
 
 import { HistoryPopup } from './HistoryPopup';
 import { WelcomeScreen } from './WelcomeScreen';
@@ -12,6 +12,7 @@ import { createClientTools } from '../utils/clientTools';
 import { WORKER_URL, MODELS_DATA } from '../../shared/constants';
 import { ChatViewProps } from '../../shared/types';
 
+/** Chat panel — renders the header, message list, welcome/loading states, input bar, and plugin controls. */
 export function ChatView(props: ChatViewProps) {
   const {
     activeThreadId,
@@ -59,15 +60,19 @@ export function ChatView(props: ChatViewProps) {
     onTogglePlugin,
   } = props;
 
+  /** Whether the plugins selector popup is visible. */
   const [showPluginsPopup, setShowPluginsPopup] = useState(false);
+  /** Ref for the plugins selector popup (used for outside-click detection). */
   const pluginsPopupRef = useRef<HTMLDivElement>(null);
 
+  /** IDs of plugins that are both available and not disabled by the user. */
   const enabledPluginIds = useMemo(() => {
     return availablePlugins
       .map((p: any) => p.id)
       .filter((id: string) => !disabledPlugins.includes(id));
   }, [availablePlugins, disabledPlugins]);
 
+  /** Close the plugins popup when clicking outside it or its trigger button. */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showPluginsPopup && pluginsPopupRef.current && !pluginsPopupRef.current.contains(event.target as Node)) {
@@ -85,7 +90,7 @@ export function ChatView(props: ChatViewProps) {
     agent: 'ChatAgent',
     name: activeThreadId,
     host: WORKER_URL,
-    onIdentityChange: () => {},
+    onIdentityChange: () => { },
   });
 
   const getSelectedTabsRef = useRef<() => { url: string; title: string }[]>(() => []);
@@ -129,6 +134,26 @@ export function ChatView(props: ChatViewProps) {
     tools: clientTools,
   });
 
+  const [toastError, setToastError] = useState<string | null>("error");
+
+  useEffect(() => {
+    if (chatError) {
+      const errMsg = chatError instanceof Error ? chatError.message : String(chatError);
+      setToastError(errMsg);
+
+      const timer = setTimeout(() => {
+        setToastError(null);
+      }, 60000);
+      return () => clearTimeout(timer);
+    } else {
+      setToastError(null);
+    }
+  }, [chatError]);
+
+  const handleDismissToast = useCallback(() => {
+    setToastError(null);
+  }, []);
+
   const popoutMode = new URLSearchParams(window.location.search).has('popout');
 
   const handleTogglePopout = useCallback(() => {
@@ -168,7 +193,7 @@ export function ChatView(props: ChatViewProps) {
         if (data.type === 'chat:title') {
           updateActiveThreadTitle(data.title);
         }
-      } catch {}
+      } catch { }
     }
     agent.addEventListener('message', handleMessage);
     return () => agent.removeEventListener('message', handleMessage);
@@ -179,8 +204,8 @@ export function ChatView(props: ChatViewProps) {
       for (const part of msg.parts) {
         const type = (part as any).type || '';
         const state = (part as any).state;
-        if (type.startsWith('tool-') && 
-            (state === 'call' || state === 'input-streaming' || state === 'input-available')) {
+        if (type.startsWith('tool-') &&
+          (state === 'call' || state === 'input-streaming' || state === 'input-available')) {
           return (part as any).toolName || type.slice(5);
         }
       }
@@ -349,12 +374,7 @@ export function ChatView(props: ChatViewProps) {
           ))
         )}
 
-        {chatError && (
-          <div className="chat-error-banner">
-            <CircleX size={14} style={{ flexShrink: 0 }} />
-            <span>{chatError instanceof Error ? chatError.message : String(chatError)}</span>
-          </div>
-        )}
+
 
         {(isStreaming || activeTool) && (
           <LoadingIndicator />
@@ -496,6 +516,21 @@ export function ChatView(props: ChatViewProps) {
         selectedModelIcon={selectedModelIcon}
         onSelectModel={onSelectModel}
       />
+
+      {toastError && (
+        <div className="chat-error-toast">
+          <div className="chat-error-toast-icon">
+            <CircleX size={16} />
+          </div>
+          <div className="chat-error-toast-content">
+            <div className="chat-error-toast-title">Error</div>
+            <div className="chat-error-toast-message">{toastError}</div>
+          </div>
+          <button className="chat-error-toast-close" onClick={handleDismissToast} aria-label="Dismiss">
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </>
   );
 }
