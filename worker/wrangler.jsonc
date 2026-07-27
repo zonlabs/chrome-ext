@@ -7,8 +7,7 @@
     "enabled": true
   },
   "vars": {
-    "BETTER_AUTH_SECRET": "",
-    "BETTER_AUTH_URL": "http://localhost:8787"
+    "BETTER_AUTH_URL": "https://api.linkos.in"
   },
   "d1_databases": [
     {
