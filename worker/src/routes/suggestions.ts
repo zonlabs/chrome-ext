@@ -85,15 +85,7 @@ Example output:
     }
   }
 
-  const debug = {
-    v: 2,
-    tried: MODELS,
-    errors,
-    rawSample,
-    hasBinding: !!c.env.AI,
-  };
-
-  return c.json({ suggestions, debug }, 200);
+  return c.json({ suggestions }, 200);
 });
 
 export default route;

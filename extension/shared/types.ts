@@ -1,35 +1,5 @@
 import React from 'react';
 
-/** Data for a scraped product listing. */
-export interface ProductData {
-  name: string;
-  price: number;
-  currency: string;
-  store: string;
-  url: string;
-  rating: number | null;
-  reviewCount: number | null;
-  image: string | null;
-  specs: Record<string, string>;
-  description: string;
-}
-
-/** State tracking open product tabs in the canvas. */
-export interface CanvasState {
-  tabs: Record<number, ProductData>;
-  activeTabId: number | null;
-}
-
-
-/** A single price observation at a given time and store. */
-export interface PricePoint {
-  price: number;
-  currency: string;
-  timestamp: string;
-  store: string;
-  url: string;
-}
-
 /** Authenticated premium user info. */
 export interface PremiumUser {
   id: string;

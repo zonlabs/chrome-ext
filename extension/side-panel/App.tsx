@@ -11,7 +11,7 @@ import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGI
 /** Main application component — orchestrates state, side-effects, and view routing (chat vs plugins). */
 export default function App() {
   // ── Tab state ──
-  /** Active browser tabs from the canvas (background pages). */
+  /** Active browser tabs. */
   const [tabs, setTabs]               = useState<any[]>([]);
   /** URLs the user has selected to share as context. */
   const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
@@ -128,10 +128,15 @@ export default function App() {
     return found ? found.icon : '';
   }, [model]);
 
-  /** On mount: fetch canvas tabs, auth status, active tab info, and generate LLM suggestions for the active tab. */
-  useEffect(() => {
-    const fetchTabs = () => {
-      chrome.runtime.sendMessage({ type: 'canvas:get' }, (response) => {
+  /** Track previous active tab URL to replace single auto-selected tab when switching active tab. */
+  const prevActiveTabUrlRef = useRef<string>('');
+  /** Track last suggested URL to prevent redundant LLM suggestion calls. */
+  const lastSuggestedUrlRef = useRef<string>('');
+
+  /** Fetch open browser tabs from the background script. */
+  const fetchTabs = useCallback(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'tabs:get' }, (response) => {
         const t = response?.tabs || [];
         setTabs(t);
         setSelectedUrls(prev =>
@@ -140,98 +145,138 @@ export default function App() {
             : prev.filter((u: string) => t.some((x: any) => x.url === u))
         );
       });
+    }
+  }, []);
+
+  /** Fetch LLM suggestions for the active tab URL and title. */
+  const fetchSuggestionsForTab = useCallback((tabUrl: string, tabTitle: string, tabId?: number) => {
+    if (!tabUrl || tabUrl.startsWith('chrome://') || tabUrl.startsWith('about:')) {
+      setActiveTabSuggestions([]);
+      return;
+    }
+
+    if (lastSuggestedUrlRef.current === tabUrl) return;
+    lastSuggestedUrlRef.current = tabUrl;
+
+    console.log('[Obot][suggestions] active tab:', tabUrl, '| title:', tabTitle);
+    setSuggestionsLoading(true);
+    setActiveTabSuggestions([]);
+
+    const runSuggestions = (pageText: string) => {
+      console.log('[Obot][suggestions] posting to /api/suggestions, pageText len:', pageText.length);
+      fetch(`${WORKER_URL}/api/suggestions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: tabUrl, title: tabTitle, pageText }),
+      })
+        .then((r) => r.json())
+        .then((data: any) => {
+          if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+            setActiveTabSuggestions(data.suggestions);
+          } else {
+            console.log('[Obot][suggestions] no suggestions in response');
+          }
+        })
+        .catch((e) => { console.log('[Obot][suggestions] fetch error:', e); })
+        .finally(() => setSuggestionsLoading(false));
     };
 
+    if (typeof chrome !== 'undefined' && chrome.scripting?.executeScript && tabId) {
+      chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          return (document.body?.innerText || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 4000);
+        }
+      })
+        .then((results) => {
+          const pageText = (results && results[0]) ? (results[0].result || '') : '';
+          runSuggestions(pageText);
+        })
+        .catch((err) => {
+          console.warn('[Obot][suggestions] executeScript failed:', err);
+          runSuggestions('');
+        });
+    } else {
+      runSuggestions('');
+    }
+  }, []);
+
+  /** Refresh current active tab state, tab chips, and suggestions when user switches or updates tabs. */
+  const refreshActiveTab = useCallback(() => {
+    if (typeof chrome === 'undefined' || !chrome.tabs?.query) return;
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || tabs.length === 0) return;
+      const tabUrl   = tabs[0]?.url   || '';
+      const tabTitle = tabs[0]?.title || '';
+      const tabId    = tabs[0]?.id;
+
+      if (tabUrl)   setActiveTabUrl(tabUrl);
+      if (tabTitle) setActiveTabTitle(tabTitle);
+
+      if (tabUrl && !tabUrl.startsWith('chrome://') && !tabUrl.startsWith('about:')) {
+        const oldActiveUrl = prevActiveTabUrlRef.current;
+        prevActiveTabUrlRef.current = tabUrl;
+
+        setSelectedUrls(prev => {
+          if (prev.length === 0) return [tabUrl];
+          if (prev.length === 1 && prev[0] === oldActiveUrl) return [tabUrl];
+          if (!prev.includes(tabUrl)) return [...prev, tabUrl];
+          return prev;
+        });
+
+        fetchTabs();
+        fetchSuggestionsForTab(tabUrl, tabTitle, tabId);
+      }
+    });
+  }, [fetchTabs, fetchSuggestionsForTab]);
+
+  /** On mount & tab events: fetch tabs, auth status, update active tab info, and listen for live tab changes. */
+  useEffect(() => {
     fetchTabs();
+    refreshActiveTab();
 
     chrome.runtime.sendMessage({ type: 'auth:status' }, (response) => {
       if (response?.user) setUser(response.user);
     });
 
-    if (typeof chrome !== 'undefined' && chrome.tabs?.query) {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const tabUrl   = tabs[0]?.url   || '';
-        const tabTitle = tabs[0]?.title || '';
-        if (tabs[0]?.url)   setActiveTabUrl(tabUrl);
-        if (tabs[0]?.title) setActiveTabTitle(tabTitle);
-
-        // Auto-add active tab to selected set on first load (Option B)
-        if (tabUrl && !tabUrl.startsWith('chrome://')) {
-          setSelectedUrls(prev => {
-            if (prev.length === 0) return [tabUrl];
-            if (!prev.includes(tabUrl)) return [...prev, tabUrl];
-            return prev;
-          });
-        }
-
-        // Generate LLM suggestions for the active tab
-        if (tabUrl && !tabUrl.startsWith('chrome://')) {
-          console.log('[Obot][suggestions] active tab:', tabUrl, '| title:', tabTitle);
-          setSuggestionsLoading(true);
-          setActiveTabSuggestions([]);
-
-          // Extract a short page text via the content script (best-effort).
-          // If the content script isn't injected into this tab, lastError is set
-          // and we simply fall back to an empty pageText.
-          const runSuggestions = (pageText: string) => {
-            console.log('[Obot][suggestions] posting to /api/suggestions, pageText len:', pageText.length);
-            fetch(`${WORKER_URL}/api/suggestions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url: tabUrl, title: tabTitle, pageText }),
-            })
-              .then((r) => {
-                console.log('[Obot][suggestions] response status:', r.status);
-                return r.json();
-              })
-              .then((data: any) => {
-                console.log('[Obot][suggestions] response data:', JSON.stringify(data));
-                console.log('[Obot][suggestions] DEBUG:', JSON.stringify(data?.debug));
-                if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
-                  console.log('[Obot][suggestions] setting', data.suggestions.length, 'suggestions');
-                  setActiveTabSuggestions(data.suggestions);
-                } else {
-                  console.log('[Obot][suggestions] no suggestions in response');
-                }
-              })
-              .catch((e) => { console.log('[Obot][suggestions] fetch error:', e); })
-              .finally(() => setSuggestionsLoading(false));
-          };
-
-          if (typeof chrome !== 'undefined' && chrome.scripting?.executeScript && tabs[0]?.id) {
-            chrome.scripting.executeScript({
-              target: { tabId: tabs[0].id },
-              func: () => {
-                return (document.body?.innerText || '')
-                  .replace(/\s+/g, ' ')
-                  .trim()
-                  .slice(0, 4000);
-              }
-            })
-              .then((results) => {
-                const pageText = (results && results[0]) ? (results[0].result || '') : '';
-                console.log('[Obot][suggestions] pageText from executeScript len:', pageText.length);
-                runSuggestions(pageText);
-              })
-              .catch((err) => {
-                console.warn('[Obot][suggestions] executeScript failed:', err);
-                runSuggestions('');
-              });
-          } else {
-            runSuggestions('');
-          }
-        }
-      });
-    }
-
     const handleMessage = (message: any) => {
-      if (message.type === 'canvas:updated' || message.type === 'product:detected') {
+      if (
+        message.type === 'tab:activated' ||
+        message.type === 'tab:updated'
+      ) {
         fetchTabs();
+        refreshActiveTab();
       }
     };
     chrome.runtime.onMessage.addListener(handleMessage);
-    return () => { chrome.runtime.onMessage.removeListener(handleMessage); };
-  }, []);
+
+    const handleTabActivated = () => {
+      refreshActiveTab();
+    };
+
+    const handleTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+      if (tab.active && (changeInfo.status === 'complete' || changeInfo.url || changeInfo.title)) {
+        refreshActiveTab();
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.onActivated?.addListener(handleTabActivated);
+      chrome.tabs.onUpdated?.addListener(handleTabUpdated);
+    }
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+      if (typeof chrome !== 'undefined' && chrome.tabs) {
+        chrome.tabs.onActivated?.removeListener(handleTabActivated);
+        chrome.tabs.onUpdated?.removeListener(handleTabUpdated);
+      }
+    };
+  }, [fetchTabs, refreshActiveTab]);
 
   /** Close popups (attach, selected, model, history) when user clicks outside their boundaries. */
   useEffect(() => {
