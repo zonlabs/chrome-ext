@@ -1,6 +1,6 @@
 {
   "name": "obot-extension",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "scripts": {
     "sync-version": "node -e \"const fs=require('fs'),pkg=require('./package.json'),m=JSON.parse(fs.readFileSync('./manifest.json','utf8'));m.version=pkg.version;fs.writeFileSync('./manifest.json',JSON.stringify(m,null,2)+'\\n');console.log('Synced manifest.json version to ' + pkg.version);\"",
