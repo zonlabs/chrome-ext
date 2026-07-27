@@ -65,12 +65,19 @@ export function ChatView(props: ChatViewProps) {
   /** Ref for the plugins selector popup (used for outside-click detection). */
   const pluginsPopupRef = useRef<HTMLDivElement>(null);
 
+  /** Stringified key of enabled plugins to prevent array reference instability. */
+  const enabledPluginsString = useMemo(() => {
+    return availablePlugins
+      .filter((p: any) => !disabledPlugins.includes(p.id) && (!p.state || p.state === 'ready'))
+      .map((p: any) => p.id)
+      .sort()
+      .join(',');
+  }, [availablePlugins, disabledPlugins]);
+
   /** IDs of plugins that are both available and not disabled by the user. */
   const enabledPluginIds = useMemo(() => {
-    return availablePlugins
-      .map((p: any) => p.id)
-      .filter((id: string) => !disabledPlugins.includes(id));
-  }, [availablePlugins, disabledPlugins]);
+    return enabledPluginsString ? enabledPluginsString.split(',') : [];
+  }, [enabledPluginsString]);
 
   /** Close the plugins popup when clicking outside it or its trigger button. */
   useEffect(() => {
@@ -129,25 +136,16 @@ export function ChatView(props: ChatViewProps) {
     });
   }, []);
 
-  /** Tool schemas without execute method to prevent double-execution between useAgentChat's auto-resolver and onToolCall handler. */
-  const clientToolSchemas = useMemo(() => {
-    const schemas: Record<string, { description: string; parameters: any }> = {};
-    for (const [name, tool] of Object.entries(clientTools)) {
-      schemas[name] = {
-        description: tool.description || '',
-        parameters: tool.parameters,
-      };
-    }
-    return schemas;
-  }, [clientTools]);
-
   /** Execute a client-side tool call triggered by the agent and stream the output back. */
   const handleToolCall = useCallback(async ({ toolCall, addToolOutput }: {
     toolCall: { toolCallId: string; toolName: string; input: unknown };
     addToolOutput: (options: { toolCallId: string; output: unknown }) => void;
   }) => {
     const tool = clientTools[toolCall.toolName];
-    if (!tool?.execute) return;
+    if (!tool?.execute) {
+      // Server-side tool (e.g. codemode) — executed on worker, ignore on client
+      return;
+    }
 
     let output: unknown;
     try {
@@ -162,22 +160,20 @@ export function ChatView(props: ChatViewProps) {
     });
   }, [clientTools]);
 
-  const enabledPluginKey = useMemo(() => enabledPluginIds.join(','), [enabledPluginIds]);
-
   /** Memoized request body for useAgentChat. */
   const chatBody = useMemo(() => ({
     model,
     pluginsAgentId,
     userId: user?.id || null,
     enabledPlugins: enabledPluginIds
-  }), [model, pluginsAgentId, user?.id, enabledPluginKey]);
+  }), [model, pluginsAgentId, user?.id, enabledPluginsString]);
 
   /** Chat state: message list, send/stop helpers, tool approval, and streaming status from the agent. */
   const { messages, sendMessage, addToolApprovalResponse, status, clearHistory, stop, setMessages, error: chatError } = useAgentChat({
     agent,
     body: chatBody,
     onToolCall: handleToolCall,
-    tools: clientToolSchemas,
+    tools: clientTools,
   });
 
   /** Dismissible error toast message, or null when hidden. */
@@ -283,9 +279,23 @@ export function ChatView(props: ChatViewProps) {
     _handleThreadNewChat();
   }, [messages, _handleThreadNewChat]);
 
+  const [isAborted, setIsAborted] = useState(false);
+
+  const handleStop = useCallback(() => {
+    setIsAborted(true);
+    stop();
+  }, [stop]);
+
+  useEffect(() => {
+    if (isAborted && (status === 'ready' || (status as string) === 'idle' || chatError)) {
+      setIsAborted(false);
+    }
+  }, [isAborted, status, chatError]);
+
   /** Submit the current input value as a new message. */
   const handleSubmit = useCallback(() => {
     if (inputValue.trim()) {
+      setIsAborted(false);
       ensureThreadEntry();
       sendMessage({ text: inputValue });
       setInputValue('');
@@ -345,7 +355,7 @@ export function ChatView(props: ChatViewProps) {
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   /** Whether the agent is currently streaming a response or waiting on a tool call. */
-  const isStreaming = status === 'streaming' || status === 'submitted' || !!activeTool;
+  const isStreaming = !isAborted && (status === 'streaming' || status === 'submitted' || !!activeTool);
 
   return (
     <>
@@ -448,7 +458,7 @@ export function ChatView(props: ChatViewProps) {
         <div className="chat-plugins-bar">
           <div className="chat-plugins-active-list">
             {(() => {
-              const enabled = availablePlugins.filter(p => !disabledPlugins.includes(p.id));
+              const enabled = availablePlugins.filter(p => !disabledPlugins.includes(p.id) && (!p.state || p.state === 'ready'));
               const visible = enabled.slice(0, 2);
               const remaining = enabled.length - 2;
               return (
@@ -534,6 +544,11 @@ export function ChatView(props: ChatViewProps) {
                               {(p.name || '?').charAt(0).toUpperCase()}
                             </div>
                             <span className="plugins-selector-name">{p.name}</span>
+                            {p.state && (
+                              <span className={`plugins-selector-status plugins-status-${p.state}`}>
+                                {p.state}
+                              </span>
+                            )}
                           </div>
 
                           <div className={`plugins-selector-checkbox ${isEnabled ? 'checked' : ''}`}>
@@ -557,7 +572,7 @@ export function ChatView(props: ChatViewProps) {
         isStreaming={isStreaming}
         onSubmit={handleSubmit}
         onKeyDown={handleKeyDown}
-        onStop={stop}
+        onStop={handleStop}
         showPopup={showPopup}
         setShowPopup={setShowPopup}
         showSelected={showSelected}

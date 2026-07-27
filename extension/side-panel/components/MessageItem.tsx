@@ -181,11 +181,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
         /* ── reasoning / thinking block ── */
         if (part.type === 'reasoning') {
+          const isCurrentPartStreaming = isStreaming && isLast && i === msg.parts.length - 1;
           return (
             <ReasoningBlock
               key={i}
               text={part.text}
-              isStreaming={isStreaming && isLast}
+              isStreaming={isCurrentPartStreaming}
             />
           );
         }

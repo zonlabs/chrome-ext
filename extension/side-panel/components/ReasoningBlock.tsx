@@ -39,7 +39,7 @@ export const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ text, isStreamin
       >
         <Brain size={14} className="reasoning-icon" />
         <span className={`reasoning-label${isStreaming ? ' reasoning-shimmer' : ''}`}>
-          Thinking{isStreaming && elapsed > 0 ? ` ${elapsed}s` : ''}
+          {isStreaming ? `Thinking${elapsed > 0 ? ` ${elapsed}s` : ''}` : 'Thought'}
         </span>
         {expanded ? (
           <ChevronDown size={12} className="reasoning-chevron" />

@@ -7,20 +7,22 @@ import { streamText, convertToModelMessages, pruneMessages, createUIMessageStrea
 
 import { McpProxy } from "./mcp-proxy";
 
-const DEFAULT_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
+const DEFAULT_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
 
 function buildSystemPrompt(): string {
   const now = new Date();
   const dateStr = now.toUTCString();
-  return `You are Obot, a helpful assistant embedded in the user's browser.
+  return `You are Obot, a helpful browser assistant.
 Current Date and Time: ${dateStr} (${now.toISOString()}).
 
-Tools available:
-- getActiveTabs (list open tabs)
-- getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length)
+Available client tools:
+- getActiveTabs: List open browser tabs.
+- getTabContent: Read text from a tab by URL (supports offset pagination).
 
-Always call getTabContent on the active tab URL when the user asks for information about the current page.
-For plugin operations (search, database queries, etc.), use the codemode tool to write JavaScript that calls the available functions on the \`codemode\` object.`;
+PAGE SUMMARIZATION INSTRUCTION:
+When asked to summarize a page, inspect the active tab URL using getActiveTabs, read its content using getTabContent, and provide a concise summary.
+
+For plugin operations, use the codemode tool to run JavaScript functions on the \`codemode\` object.`;
 }
 
 export class ChatAgent extends AIChatAgent<Env> {
@@ -129,7 +131,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 
     try {
       const clientTools = _options?.clientTools?.length ? createToolsFromClientSchemas(_options.clientTools) : {};
-
+      console.log("client tools :", clientTools)
       const pluginsAgentId = _options?.body?.pluginsAgentId as string | undefined;
       const enabledPlugins = _options?.body?.enabledPlugins as string[] | undefined;
 

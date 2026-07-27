@@ -23,7 +23,7 @@ function getToolIconComponent(rawName: string, state: string) {
   return <Wrench size={13} />;
 }
 
-/** Expandable accordion displaying a tool call's name, arguments, and result. */
+/** Expandable accordion displaying a tool call's name, arguments, and result/error. */
 export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allParts, allMessages }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -50,45 +50,53 @@ export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allP
     }
   }
 
+  const rawOutput = part.output !== undefined ? part.output : (part.result !== undefined ? part.result : part.error);
+
+  const isError = part.state === 'output-error' ||
+    part.isError === true ||
+    part.error !== undefined ||
+    (typeof rawOutput === 'string' && (rawOutput.startsWith('Error') || rawOutput.startsWith('Failed'))) ||
+    (rawOutput && typeof rawOutput === 'object' && ('error' in rawOutput || 'errorMessage' in rawOutput));
+
   const argsString = JSON.stringify(part.input || part.args || {}, null, 2);
-  const resultString = part.output !== undefined
-    ? (typeof part.output === 'object' ? JSON.stringify(part.output, null, 2) : String(part.output))
+  const resultString = rawOutput !== undefined
+    ? (typeof rawOutput === 'object' ? JSON.stringify(rawOutput, null, 2) : String(rawOutput))
     : '';
 
-  const renderResult = () => {
-    if (part.state === 'output-error') {
-      return <pre className="tool-call-code" style={{ color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.2)' }}>{resultString || 'Error executing tool.'}</pre>;
-    }
-    return <pre className="tool-call-code">{resultString}</pre>;
-  };
+  const summary = getToolSummary(toolName, part.input || part.args, rawOutput, part.state);
 
-  const isExecuting = part.state !== 'output-available' && part.state !== 'output-error';
-  const summary = getToolSummary(toolName, part.input || part.args, part.output, part.state);
+  const isExecuting = part.state !== 'output-available' && part.state !== 'output-error' && !isError;
 
   return (
     <div className="tool-call-accordion">
       <div className="tool-call-header" onClick={() => setIsOpen(!isOpen)}>
         <div className="tool-call-icon-wrapper">
-          <div className="tool-call-icon">{getToolIconComponent(toolName, part.state)}</div>
+          <div className="tool-call-icon">
+            {getToolIconComponent(toolName, isError ? 'output-error' : part.state)}
+          </div>
           <div className="tool-call-chevron">{isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</div>
         </div>
-        <span className={`tool-call-name ${isExecuting ? 'tool-call-shimmer' : ''}`}>{summary}</span>
+        <span className={`tool-call-name ${isExecuting ? 'tool-call-shimmer' : ''}`}>
+          {summary}
+        </span>
       </div>
 
       {isOpen && (
         <div className="tool-call-content">
           <div className="tool-call-name-section">
             <span className="tool-call-section-title">Tool</span>
-            <span className="tool-call-name-value">{toolName}</span>
+            <span className="tool-call-name-value">{toolName || 'Unknown'}</span>
           </div>
           <div>
             <div className="tool-call-section-title">Arguments</div>
             <pre className="tool-call-code">{argsString}</pre>
           </div>
-          {resultString && (
+          {(resultString || isError) && (
             <div>
               <div className="tool-call-section-title">Result</div>
-              {renderResult()}
+              <pre className="tool-call-code" style={isError ? { color: '#ff6b6b' } : undefined}>
+                {resultString || 'Error executing tool.'}
+              </pre>
             </div>
           )}
         </div>
