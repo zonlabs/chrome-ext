@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowLeft, Trash2, Cpu, FileText, Plus, ChevronDown, ChevronRight, Globe, CircleCheck, XCircle, Loader, Lock } from 'lucide-react';
+import { ArrowLeft, Trash2, Cpu, FileText, Plus, ChevronDown, ChevronRight, Globe, CircleCheck, XCircle, Loader, Lock, Terminal } from 'lucide-react';
 import { useAgent } from 'agents/react';
 
 import { WORKER_URL } from '../../shared/constants';
@@ -72,6 +72,17 @@ interface McpServer {
   state: string;
 }
 
+/** Agent Skill definition exposed by ChatAgent RPC. */
+interface AgentSkill {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  triggers: string[];
+  systemPromptSnippet: string;
+  enabledByDefault: boolean;
+}
+
 /** A tool exposed by an MCP server. */
 interface McpTool {
   /** ID of the server that provides this tool */
@@ -126,8 +137,10 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
   const [tools, setTools] = useState<McpTool[]>([]);
   /** Resources exposed by connected servers. */
   const [resources, setResources] = useState<McpResource[]>([]);
-  /** Active tab: Manage (settings), Tools, or Resources. */
-  const [activeTab, setActiveTab] = useState<'settings' | 'tools' | 'resources'>('settings');
+  /** Agent Skills exposed by the backend agent. */
+  const [skillsList, setSkillsList] = useState<AgentSkill[]>([]);
+  /** Active tab: Manage (settings), Skills, Tools, or Resources. */
+  const [activeTab, setActiveTab] = useState<'settings' | 'skills' | 'tools' | 'resources'>('settings');
 
   /** Name input for the manual-add form. */
   const [name, setName] = useState('');
@@ -143,8 +156,8 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   /** Set of tool/resource description keys that have been expanded by the user. */
   const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set());
-  /** Set of tool keys whose parameters list is expanded by the user (collapsed by default). */
-  const [expandedParams, setExpandedParams] = useState<Set<string>>(new Set());
+  /** State for CLI skill import command */
+  const [skillCommand, setSkillCommand] = useState('npx skills add https://github.com/chromedevtools/chrome-devtools-mcp --skill chrome-devtools');
   /** Domains whose favicons failed to load (show fallback icon). */
   const [failedFavicons, setFailedFavicons] = useState<Set<string>>(new Set());
 
@@ -191,6 +204,18 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
     onOpen: useCallback(() => setConnectionStatus('connected'), []),
     onMcpUpdate: handleMcpUpdate,
   });
+
+  React.useEffect(() => {
+    if (connectionStatus === 'connected') {
+      console.log('[PluginsScreen] Connected to agent. Calling listSkills RPC...');
+      agent.call("listSkills").then((res: any) => {
+        console.log('[PluginsScreen] Received listSkills response from agent:', res);
+        if (Array.isArray(res)) setSkillsList(res);
+      }).catch(err => {
+        console.warn('[PluginsScreen] Failed to fetch skills:', err);
+      });
+    }
+  }, [connectionStatus]);
 
   /** Add a new MCP server via the agent's addPlugin RPC. */
   const handleAdd = async (e: React.FormEvent) => {
@@ -287,6 +312,12 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
           onClick={() => setActiveTab('settings')}
         >
           Manage
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'skills' ? 'active' : ''}`}
+          onClick={() => setActiveTab('skills')}
+        >
+          Skills ({skillsList.length})
         </button>
         <button
           className={`tab-btn ${activeTab === 'tools' ? 'active' : ''}`}
@@ -458,6 +489,130 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Tab: Skills ── */}
+        {activeTab === 'skills' && (
+          <div className="skills-tab-content" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!skillCommand.trim()) return;
+                setLoading(true);
+                setError('');
+                try {
+                  console.log('[PluginsScreen] Executing importSkillFromCommand RPC with:', skillCommand.trim());
+                  const res = await agent.call("importSkillFromCommand", [skillCommand.trim()]) as any;
+                  console.log('[PluginsScreen] importSkillFromCommand RPC response:', res);
+                  if (res.success) {
+                    setSkillCommand('');
+                    const updated = await agent.call("listSkills") as any;
+                    console.log('[PluginsScreen] Updated skills list after import:', updated);
+                    if (Array.isArray(updated)) setSkillsList(updated);
+                  } else {
+                    setError(res.error || 'Failed to import skill');
+                  }
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Import Skill</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="npx skills add <url> --skill <name>"
+                  value={skillCommand}
+                  onChange={e => setSkillCommand(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
+                    border: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
+                    borderRadius: 6,
+                    padding: '7px 10px',
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  className="add-btn"
+                  disabled={loading}
+                  style={{ fontSize: 11, padding: '7px 12px', whiteSpace: 'nowrap' }}
+                >
+                  {loading ? 'Importing...' : 'Add Skill'}
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                Example: <span
+                  onClick={() => setSkillCommand('npx skills add https://github.com/chromedevtools/chrome-devtools-mcp --skill chrome-devtools')}
+                  style={{ cursor: 'pointer', fontFamily: 'monospace', textDecoration: 'underline' }}
+                >
+                  npx skills add https://github.com/chromedevtools/chrome-devtools-mcp --skill chrome-devtools
+                </span>
+              </div>
+            </form>
+
+            <div className="section-title" style={{ margin: '8px 0 0 0' }}>Loaded Skills ({skillsList.length})</div>
+
+            {skillsList.length === 0 ? (
+              <div className="empty-state">
+                <Cpu size={24} />
+                <div>No skills loaded from agent.</div>
+              </div>
+            ) : (
+              <div className="skills-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {skillsList.map((skill) => (
+                  <div key={skill.id} className="plugin-card" style={{ padding: '14px 16px' }}>
+                    <div className="plugin-header" style={{ marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div className="plugin-name-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="plugin-name" style={{ fontSize: 14, fontWeight: 600 }}>{skill.name}</span>
+                        <span className="devtools-badge active" style={{ fontSize: 10, textTransform: 'capitalize' }}>{skill.category}</span>
+                      </div>
+                      <button
+                        className="remove-btn"
+                        title="Delete Skill"
+                        onClick={async () => {
+                          setLoading(true);
+                          try {
+                            await agent.call("removeSkill", [skill.id]);
+                            const updated = await agent.call("listSkills") as any;
+                            if (Array.isArray(updated)) setSkillsList(updated);
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : String(err));
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                    <div className="plugin-status-text" style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      {skill.description}
+                    </div>
+                    {skill.triggers && skill.triggers.length > 0 && (
+                      <div style={{ marginTop: 10, display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>Triggers:</span>
+                        {skill.triggers.map((t) => (
+                          <span key={t} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.06)', color: 'var(--accent-blue, #8ab4f8)', fontFamily: 'monospace' }}>
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
