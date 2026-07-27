@@ -63,6 +63,15 @@ export interface ClientToolsContext {
   getSelectedTabs: () => { url: string; title: string }[];
 }
 
+/** A file attachment part for chat messages (e.g. image screenshot). Matches the AI SDK's FileUIPart shape. */
+export type FileUIPart = {
+  type: 'file';
+  mediaType: string;
+  filename?: string;
+  url: string;
+  providerMetadata?: Record<string, unknown>;
+};
+
 /** All props passed to the ChatView component. */
 export interface ChatViewProps {
   activeThreadId: string;

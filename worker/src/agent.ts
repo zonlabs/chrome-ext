@@ -27,22 +27,24 @@ function modelHasVision(modelName: string): boolean {
 function buildSystemPrompt(modelName: string): string {
   const now = new Date();
   const dateStr = now.toUTCString();
+  const visionNote = modelHasVision(modelName)
+    ? `\n- A viewport screenshot is also attached as an image whenever the current page is accessible and your model supports vision.`
+    : '';
   return `You are Obot, a helpful browser assistant.
 Current Date and Time: ${dateStr} (${now.toISOString()}).
 
 You are running on model: ${modelName}${modelHasVision(modelName) ? ' (vision-capable)' : ''}.
 
-Available client tools:
-- getActiveTabs: List open browser tabs.
-- getTabContent: Read text from a tab by URL (supports offset pagination).
-- captureScreenshot: Capture a JPEG screenshot of the current browser viewport. Returns a base64 data URL.
-- getFocusedElementText: Get the text content of the currently focused input element (input, textarea, contenteditable). Call this explicitly when you need to understand what the user is typing on the page.
+SCREEN CONTEXT:
+Every user message may begin with an auto-injected <page_context> block containing:
+- url: The active tab's URL
+- title: The page title
+- text: Extracted visible content (headings, interactive elements, inputs, paragraphs)
 
-PAGE SUMMARIZATION INSTRUCTION:
-When asked to summarize a page, inspect the active tab URL using getActiveTabs, read its content using getTabContent, and provide a concise summary.
+This context is automatically captured from the user's active browser tab. You do NOT need to call getActiveTabs, getTabContent, or captureScreenshot to see the current page — its context is already in the message.${visionNote}
 
-FOCUSED INPUT:
-Use the getFocusedElementText tool to read what the user is currently typing on the active page — call it explicitly when you need to understand their input.
+The only available client-side tool is:
+- getFocusedElementText: Read what the user is typing in a focused input field. Use this when you need to understand what the user is typing on the active page outside of their chat message.
 
 For plugin operations, use the codemode tool to run JavaScript functions on the \`codemode\` object.`;
 }
@@ -174,6 +176,37 @@ export class ChatAgent extends AIChatAgent<Env> {
       const tools = { ...clientTools, codemode };
 
       let modelMessages = await convertToModelMessages(this.messages);
+
+      // Inject auto-captured page context into the last user message (hidden from UI — sent via body).
+      const pageContext = (_options?.body as any)?.pageContext as { url: string; title: string; text: string } | undefined;
+      const screenshot = (_options?.body as any)?.screenshot as string | undefined;
+      if (pageContext) {
+        const contextText = `<page_context url="${pageContext.url}" title="${pageContext.title}">\n${pageContext.text}\n</page_context>`;
+        for (let i = modelMessages.length - 1; i >= 0; i--) {
+          const msg = modelMessages[i];
+          if (msg.role !== 'user') continue;
+          if (typeof msg.content === 'string') {
+            msg.content = `${contextText}\n\n${msg.content}`;
+          } else if (Array.isArray(msg.content)) {
+            for (let j = msg.content.length - 1; j >= 0; j--) {
+              const p = msg.content[j];
+              if (p.type === 'text') {
+                (p as { type: 'text'; text: string }).text = `${contextText}\n\n${(p as { type: 'text'; text: string }).text}`;
+                break;
+              }
+            }
+          }
+          // Attach screenshot as image part if model supports vision
+          if (screenshot && modelHasVision(modelName)) {
+            if (typeof msg.content === 'string') {
+              msg.content = [{ type: 'text' as const, text: msg.content }, { type: 'image' as const, image: screenshot }];
+            } else if (Array.isArray(msg.content)) {
+              (msg.content as unknown as Array<Record<string, unknown>>).push({ type: 'image', image: screenshot });
+            }
+          }
+          break;
+        }
+      }
 
       // Strip image parts for text-only models to avoid provider errors.
       if (!modelHasVision(modelName)) {

@@ -1,10 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RotateCw, Copy, MoreVertical, ChevronDown, ChevronRight, Pencil, Check, Wrench } from 'lucide-react';
+import { RotateCw, Copy, MoreVertical, ChevronDown, ChevronRight, Pencil, Check, ChevronsUpDown, Wrench } from 'lucide-react';
 import { getToolApproval } from '@cloudflare/ai-chat/react';
 import { renderMarkdown } from '../utils/markdown';
 import { formatToolName } from '../utils/toolNames';
 import { ReasoningBlock } from './ReasoningBlock';
 import { ToolCallAccordion } from './ToolCallAccordion';
+
+/** Truncate long user messages with an expand/collapse toggle. */
+function TruncatedMessage({ text, maxLen = 280 }: { text: string; maxLen?: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const needsTruncation = text.length > maxLen;
+  if (!needsTruncation) return <>{renderMarkdown(text)}</>;
+  return (
+    <div className="truncated-message">
+      <div className={expanded ? '' : 'truncated-message-collapsed'}>
+        {renderMarkdown(expanded ? text : text.slice(0, maxLen))}
+      </div>
+      {!expanded && <span className="truncated-ellipsis"> ...</span>}
+      <button className="truncated-toggle" onClick={() => setExpanded(!expanded)}>
+        <ChevronsUpDown size={13} />
+        <span>{expanded ? 'Show less' : 'Show more'}</span>
+      </button>
+    </div>
+  );
+}
 
 /** Props for MessageItem — a single message in the chat, including tool calls and approval UI. */
 interface MessageItemProps {
@@ -172,6 +191,9 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       {msg.parts.map((part: any, i: number) => {
         /* ── plain text ── */
         if (part.type === 'text') {
+          if (msg.role === 'user') {
+            return <TruncatedMessage key={i} text={part.text} />;
+          }
           return (
             <React.Fragment key={i}>
               {renderMarkdown(part.text)}

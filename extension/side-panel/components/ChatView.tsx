@@ -8,7 +8,7 @@ import { WelcomeScreen } from './WelcomeScreen';
 import { MessageItem } from './MessageItem';
 import { ChatInput } from './ChatInput';
 import { LoadingIndicator } from './LoadingIndicator';
-import { createClientTools } from '../utils/clientTools';
+import { createClientTools, captureScreenshot, getActiveTabPageContext } from '../utils/clientTools';
 import { WORKER_URL, MODELS_DATA } from '../../shared/constants';
 import { ChatViewProps } from '../../shared/types';
 
@@ -160,6 +160,17 @@ export function ChatView(props: ChatViewProps) {
     });
   }, [clientTools]);
 
+  /** Holds pending page context + screenshot for the next sendMessage call. Cleared by prepareSendMessagesRequest. */
+  const pendingContextRef = useRef<{ pageContext: { url: string; title: string; text: string } | null; screenshot: string | null } | null>(null);
+
+  /** Attach pending screen context to the request body so it goes server-side without appearing in the UI. */
+  const prepareSendMessagesRequest = useCallback(async () => {
+    const ctx = pendingContextRef.current;
+    pendingContextRef.current = null;
+    if (!ctx?.pageContext && !ctx?.screenshot) return {};
+    return { body: { pageContext: ctx.pageContext, screenshot: ctx.screenshot } };
+  }, []);
+
   /** Memoized request body for useAgentChat. */
   const chatBody = useMemo(() => ({
     model,
@@ -174,6 +185,7 @@ export function ChatView(props: ChatViewProps) {
     body: chatBody,
     onToolCall: handleToolCall,
     tools: clientTools,
+    prepareSendMessagesRequest,
   });
 
   /** Dismissible error toast message, or null when hidden. */
@@ -237,13 +249,25 @@ export function ChatView(props: ChatViewProps) {
   /** Text pending to send as an edited message (triggers a new message on next render). */
   const [pendingEdit, setPendingEdit] = useState<{ text: string } | null>(null);
 
-  /** Send the pending edited message as soon as it is set, then clear. */
+  /** Send the pending edited message, capturing context into pendingContextRef so it reaches the server without showing in UI. */
   useEffect(() => {
-    if (pendingEdit) {
+    if (!pendingEdit) return;
+    (async () => {
+      try {
+        const ctx = await getActiveTabPageContext();
+        let screenshot: string | null = null;
+        const modelEntry = MODELS_DATA.find(m => m.value === model);
+        if (modelEntry?.hasVision && ctx) {
+          screenshot = await captureScreenshot();
+        }
+        pendingContextRef.current = { pageContext: ctx, screenshot };
+      } catch {
+        pendingContextRef.current = null;
+      }
       sendMessage({ text: pendingEdit.text });
       setPendingEdit(null);
-    }
-  }, [pendingEdit, sendMessage]);
+    })();
+  }, [pendingEdit, sendMessage, model]);
 
   /** Name of the currently active (calling/streaming) tool, or null. */
   const activeTool = useMemo(() => {
@@ -292,15 +316,28 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [isAborted, status, chatError]);
 
-  /** Submit the current input value as a new message. */
-  const handleSubmit = useCallback(() => {
+  /** Submit the current input value — screen context captured into pendingContextRef (sent via body, hidden from UI). */
+  const handleSubmit = useCallback(async () => {
     if (!inputValue.trim()) return;
     setIsAborted(false);
     ensureThreadEntry();
+
+    try {
+      const ctx = await getActiveTabPageContext();
+      let screenshot: string | null = null;
+      const modelEntry = MODELS_DATA.find(m => m.value === model);
+      if (modelEntry?.hasVision && ctx) {
+        screenshot = await captureScreenshot();
+      }
+      pendingContextRef.current = { pageContext: ctx, screenshot };
+    } catch {
+      pendingContextRef.current = null;
+    }
+
     sendMessage({ text: inputValue });
     setInputValue('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
-  }, [inputValue, ensureThreadEntry, sendMessage, setInputValue, inputRef]);
+  }, [inputValue, model, ensureThreadEntry, sendMessage, setInputValue, inputRef]);
 
   /** Submit on Enter (without Shift), allowing Shift+Enter for newlines. */
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
