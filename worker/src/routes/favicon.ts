@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { Env } from '../db/schema';
 
 const app = new Hono<{ Bindings: Env }>();
 

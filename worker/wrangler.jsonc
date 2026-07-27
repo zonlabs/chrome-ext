@@ -6,6 +6,9 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "BETTER_AUTH_SECRET": ""
+  },
   "d1_databases": [
     {
       "binding": "DB",

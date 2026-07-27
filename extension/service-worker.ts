@@ -45,7 +45,6 @@ chrome.runtime.onMessage.addListener((
         chrome.runtime.sendMessage({ type: 'canvas:updated' }).catch(() => {});
       });
       console.log('[SW] Canvas now has', Object.keys(canvas.tabs).length, 'products');
-      logPriceHistory(message.data as ProductData).catch(() => {});
     });
   }
 });
@@ -123,7 +122,7 @@ async function handleSignIn(): Promise<{ user: any } | { error: string }> {
     }
 
     const data = await res.json();
-    await chrome.storage.local.set({ jwt: data.jwt, user: data.user });
+    await chrome.storage.local.set({ jwt: data.token, user: data.user });
     return { user: data.user };
   } catch (err) {
     return { error: 'Sign-in cancelled or failed' };
@@ -159,16 +158,3 @@ function updateBadge(): void {
   }
 }
 
-async function logPriceHistory(product: ProductData): Promise<void> {
-  await fetch(`${WORKER_URL}/api/price-history`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: product.name,
-      store: product.store,
-      url: product.url,
-      price: product.price,
-      currency: product.currency,
-    }),
-  });
-}

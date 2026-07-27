@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
-import { Env } from '../db/schema';
-import { verifyJWT } from '../utils/jwt';
+import { auth } from '../utils/auth';
 
 // KV key pattern: threads:<userId>
 const kvKey = (userId: string) => `threads:${userId}`;
@@ -14,15 +13,13 @@ interface Thread {
 const app = new Hono<{ Bindings: Env }>();
 
 // ── Auth helper ───────────────────────────────────────────────────────────────
-// Extracts and verifies the JWT from "Authorization: Bearer <token>".
-// Returns the userId (sub claim) on success, null otherwise.
+// Retrieves the session using Better Auth from the Authorization header.
+// Returns the userId on success, null otherwise.
 async function getUserId(c: any): Promise<string | null> {
-  const authHeader: string = c.req.header('authorization') ?? '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return null;
-
-  const claims = await verifyJWT(token, c.env.JWT_SECRET);
-  return claims?.sub ?? null;
+  const session = await auth(c.env).api.getSession({
+    headers: c.req.raw.headers,
+  });
+  return session?.user?.id ?? null;
 }
 
 // ── GET /api/threads ──────────────────────────────────────────────────────────

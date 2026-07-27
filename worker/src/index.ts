@@ -2,9 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { routeAgentRequest } from 'agents';
 
-import { Env } from './db/schema';
 import { ChatAgent } from './agent';
-import chatRoute from './routes/chat';
+import { auth } from './utils/auth';
 import authRoute from './routes/auth';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
@@ -38,8 +37,12 @@ app.use(
   })
 );
 
-app.route('/api', chatRoute);
 app.route('/api', authRoute);
+
+app.on(['POST', 'GET'], '/api/auth/*', (c) => {
+  return auth(c.env).handler(c.req.raw);
+});
+
 app.route('/api', threadsRoute);
 app.route('/api', suggestionsRoute);
 app.route('/api', faviconRoute);

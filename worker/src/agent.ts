@@ -5,19 +5,22 @@ import { DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet } from "ai";
 
-import { Env } from "./db/schema";
 import { McpProxy } from "./mcp-proxy";
 
 const DEFAULT_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
 
 function buildSystemPrompt(): string {
-  return "You are Obot, a helpful assistant embedded in the user's browser. " +
-    "Tools available:\n" +
-    "- getActiveTabs (list open tabs)\n" +
-    "- getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length)\n" +
-    "Always call getTabContent on the active tab URL when the user asks for information about the current page. " +
-    "For plugin operations (search, database queries, etc.), use the codemode tool to write JavaScript " +
-    "that calls the available functions on the `codemode` object.";
+  const now = new Date();
+  const dateStr = now.toUTCString();
+  return `You are Obot, a helpful assistant embedded in the user's browser.
+Current Date and Time: ${dateStr} (${now.toISOString()}).
+
+Tools available:
+- getActiveTabs (list open tabs)
+- getTabContent (read page content by URL, supports offset pagination — next offset = current offset + returned length)
+
+Always call getTabContent on the active tab URL when the user asks for information about the current page.
+For plugin operations (search, database queries, etc.), use the codemode tool to write JavaScript that calls the available functions on the \`codemode\` object.`;
 }
 
 export class ChatAgent extends AIChatAgent<Env> {
