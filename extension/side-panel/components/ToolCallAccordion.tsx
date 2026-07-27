@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, AlertCircle, Wrench, Search, Globe, List, FileText, AppWindow, SquareTerminal } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertCircle, Image, Wrench, Search, Globe, List, FileText, AppWindow, SquareTerminal } from 'lucide-react';
 import { getToolSummary, formatToolName } from '../utils/toolNames';
 
 /** Props for the ToolCallAccordion component. */
@@ -20,6 +20,7 @@ function getToolIconComponent(rawName: string, state: string) {
   if (name.includes('fetch') || name.includes('navigate') || name.includes('browse') || name.includes('scrape') || name.includes('web')) return <Globe size={13} />;
   if (name.includes('list')) return <List size={13} />;
   if (name.includes('get') || name.includes('read') || name.includes('file') || name.includes('export')) return <FileText size={13} />;
+  if (name.includes('screenshot') || name.includes('capture')) return <Image size={13} />;
   return <Wrench size={13} />;
 }
 

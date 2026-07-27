@@ -51,7 +51,57 @@ function extractUrlString(val: any): string {
   return '';
 }
 
-/** Build the set of client-side tools (getTabContent, getActiveTabs) available to the AI. */
+/** Upload a base64 screenshot to the worker and return a public URL. */
+async function uploadScreenshot(dataUrl: string): Promise<string> {
+  const res = await fetch(`https://api.linkos.in/api/screenshot/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: dataUrl }),
+  });
+  if (!res.ok) throw new Error(`Screenshot upload failed: ${res.status}`);
+  const { url } = await res.json();
+  return url;
+}
+
+/** Capture a screenshot of the visible browser tab. Returns a base64 data URL or null on failure. */
+export async function captureScreenshot(): Promise<string | null> {
+  try {
+    return await chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 80 });
+  } catch (e) {
+    console.error('[captureScreenshot] Error:', e);
+    return null;
+  }
+}
+
+/** Get the active focused element's text/placeholder/tag from the current tab. Returns null on failure or if nothing focused. */
+export async function getFocusedElementText(): Promise<string | null> {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (!tab?.id || isRestrictedUrl(tab.url)) return null;
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const el = document.activeElement;
+        if (!el || !(el instanceof HTMLElement)) return null;
+        const tag = el.tagName.toLowerCase();
+        const isInput = tag === 'input' || tag === 'textarea' || el.isContentEditable;
+        if (!isInput) return null;
+        const value = ((el as HTMLInputElement).value ?? el.textContent ?? '').slice(0, 5000);
+        if (!value) return null;
+        return value;
+      },
+    });
+    if (results?.[0]?.result) return results[0].result as string;
+    return null;
+  } catch (e) {
+    console.error('[getFocusedElementText] Error:', e);
+    return null;
+  }
+}
+
+/** Build the set of client-side tools (getTabContent, getActiveTabs, captureScreenshot, getFocusedElementText) available to the AI. */
 export function createClientTools(context: ClientToolsContext): Record<string, AITool<any, any>> {
   return {
     getTabContent: {
@@ -163,6 +213,29 @@ export function createClientTools(context: ClientToolsContext): Record<string, A
           console.error('[getActiveTabs] Error:', e);
           return `Error: ${e instanceof Error ? e.message : String(e)}`;
         }
+      },
+    },
+    captureScreenshot: {
+      description: 'Capture a screenshot of the current browser viewport. Returns a data URL (base64 JPEG).',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+      execute: async () => {
+        const dataUrl = await captureScreenshot();
+        if (dataUrl) return { screenshot: dataUrl, format: 'jpeg' };
+        return 'Failed to capture screenshot (possibly a restricted page).';
+      },
+    },
+    getFocusedElementText: {
+      description: 'Get the text value of the currently focused input field on the active tab (input, textarea, contenteditable div). Returns the raw text content, or a message if nothing is focused.',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+      execute: async () => {
+        const text = await getFocusedElementText();
+        return text ?? 'No focused input element found on this page.';
       },
     },
   };

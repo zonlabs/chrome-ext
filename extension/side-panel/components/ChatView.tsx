@@ -294,13 +294,12 @@ export function ChatView(props: ChatViewProps) {
 
   /** Submit the current input value as a new message. */
   const handleSubmit = useCallback(() => {
-    if (inputValue.trim()) {
-      setIsAborted(false);
-      ensureThreadEntry();
-      sendMessage({ text: inputValue });
-      setInputValue('');
-      if (inputRef.current) inputRef.current.style.height = 'auto';
-    }
+    if (!inputValue.trim()) return;
+    setIsAborted(false);
+    ensureThreadEntry();
+    sendMessage({ text: inputValue });
+    setInputValue('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   }, [inputValue, ensureThreadEntry, sendMessage, setInputValue, inputRef]);
 
   /** Submit on Enter (without Shift), allowing Shift+Enter for newlines. */

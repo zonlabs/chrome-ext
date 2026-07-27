@@ -3,24 +3,46 @@ import { callable } from "agents";
 import { createCodeTool } from "@cloudflare/codemode/ai";
 import { DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { createWorkersAI } from "workers-ai-provider";
-import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet } from "ai";
+import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage, ToolSet, ModelMessage } from "ai";
 
 import { McpProxy } from "./mcp-proxy";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
 
-function buildSystemPrompt(): string {
+/** Model IDs whose 'vision' suffix implies image-in / text+image-out. */
+const VISION_MODELS = new Set([
+  '@cf/unum/uform-gen2-qwen-500m',
+  '@cf/meta/llama-3.2-11b-vision-instruct',
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
+  '@cf/google/gemma-3-12b-it',
+  '@cf/google/gemma-4-26b-a4b-it',
+  '@cf/moonshotai/kimi-k2.5',
+  '@cf/moonshotai/kimi-k2.6',
+]);
+
+function modelHasVision(modelName: string): boolean {
+  return VISION_MODELS.has(modelName) || modelName.includes('vision');
+}
+
+function buildSystemPrompt(modelName: string): string {
   const now = new Date();
   const dateStr = now.toUTCString();
   return `You are Obot, a helpful browser assistant.
 Current Date and Time: ${dateStr} (${now.toISOString()}).
 
+You are running on model: ${modelName}${modelHasVision(modelName) ? ' (vision-capable)' : ''}.
+
 Available client tools:
 - getActiveTabs: List open browser tabs.
 - getTabContent: Read text from a tab by URL (supports offset pagination).
+- captureScreenshot: Capture a JPEG screenshot of the current browser viewport. Returns a base64 data URL.
+- getFocusedElementText: Get the text content of the currently focused input element (input, textarea, contenteditable). Call this explicitly when you need to understand what the user is typing on the page.
 
 PAGE SUMMARIZATION INSTRUCTION:
 When asked to summarize a page, inspect the active tab URL using getActiveTabs, read its content using getTabContent, and provide a concise summary.
+
+FOCUSED INPUT:
+Use the getFocusedElementText tool to read what the user is currently typing on the active page — call it explicitly when you need to understand their input.
 
 For plugin operations, use the codemode tool to run JavaScript functions on the \`codemode\` object.`;
 }
@@ -151,11 +173,26 @@ export class ChatAgent extends AIChatAgent<Env> {
       const codemode = createCodeTool({ tools: mcpTools, executor });
       const tools = { ...clientTools, codemode };
 
+      let modelMessages = await convertToModelMessages(this.messages);
+
+      // Strip image parts for text-only models to avoid provider errors.
+      if (!modelHasVision(modelName)) {
+        modelMessages = modelMessages.map(msg => {
+          if (msg.role !== 'user' || typeof msg.content === 'string') return msg;
+          const textParts = msg.content.filter(p => p.type !== 'image');
+          if (textParts.length === 0) return { role: 'user' as const, content: '' };
+          if (textParts.length === 1 && textParts[0].type === 'text') {
+            return { role: 'user' as const, content: textParts[0].text };
+          }
+          return { role: 'user' as const, content: textParts };
+        }) as ModelMessage[];
+      }
+
       const result = streamText({
         model: workersai(modelName),
-        system: buildSystemPrompt(),
+        system: buildSystemPrompt(modelName),
         messages: pruneMessages({
-          messages: await convertToModelMessages(this.messages),
+          messages: modelMessages,
           toolCalls: "before-last-2-messages",
         }),
         tools,

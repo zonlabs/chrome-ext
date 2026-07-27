@@ -148,6 +148,27 @@ function buildProductData(): ProductData | null {
   return merged;
 }
 
+/** Return the currently focused element's text content and metadata. */
+function getFocusedElementInfo(): { text: string; placeholder: string; tag: string; selector: string } | null {
+  const el = document.activeElement;
+  if (!el || !(el instanceof HTMLElement)) return null;
+  const tag = el.tagName.toLowerCase();
+  const isInput = tag === 'input' || tag === 'textarea' || el.isContentEditable;
+  if (!isInput) return null;
+  const value = ((el as HTMLInputElement).value ?? el.textContent ?? '').slice(0, 5000);
+  const placeholder = (el as HTMLInputElement).placeholder ?? '';
+  if (!value && !placeholder) return null;
+  return { text: value, placeholder: placeholder.slice(0, 200), tag, selector: el.id ? `#${el.id}` : tag };
+}
+
+/** Listen for runtime messages from the side panel or service worker. */
+chrome.runtime.onMessage.addListener((message: any, _sender, sendResponse) => {
+  if (message.type === 'get:focusedElement') {
+    sendResponse({ data: getFocusedElementInfo() ?? { text: '', placeholder: '', tag: '', selector: '' } });
+  }
+  return true; // Keep channel open for async response
+});
+
 if (typeof document !== 'undefined' && document.body && document.createElement) {
   const tempEl = document.createElement('div');
   if (tempEl && tempEl.style) {

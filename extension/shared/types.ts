@@ -55,6 +55,7 @@ export interface ModelEntry {
   desc: string;
   icon: string;
   tier: ModelTier;
+  hasVision?: boolean;
 }
 
 /** Context providing helper methods for client-side tools. */
