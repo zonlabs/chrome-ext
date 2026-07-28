@@ -95,10 +95,11 @@ export function ChatView(props: ChatViewProps) {
 
   /** Memoized agent configuration object — ensures useAgent returns a stable connection instance across renders. */
   const agentOptions = useMemo(() => ({
-    agent: 'ChatAgent',
-    name: activeThreadId,
+    agent: 'McpAgent',
+    name: pluginsAgentId,
+    sub: [{ agent: 'ChatAgent', name: activeThreadId }],
     host: WORKER_URL,
-  }), [activeThreadId]);
+  }), [pluginsAgentId, activeThreadId]);
 
   /** Raw agent connection for the current active thread. */
   const rawAgent = useAgent(agentOptions);
