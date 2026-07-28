@@ -130,8 +130,6 @@ export default function App() {
 
   /** Track previous active tab URL to replace single auto-selected tab when switching active tab. */
   const prevActiveTabUrlRef = useRef<string>('');
-  /** Track last suggested URL to prevent redundant LLM suggestion calls. */
-  const lastSuggestedUrlRef = useRef<string>('');
 
   /** Fetch open browser tabs from the background script. */
   const fetchTabs = useCallback(() => {
@@ -139,70 +137,99 @@ export default function App() {
       chrome.runtime.sendMessage({ type: 'tabs:get' }, (response) => {
         const t = response?.tabs || [];
         setTabs(t);
-        setSelectedUrls(prev =>
-          prev.length === 0
-            ? []
-            : prev.filter((u: string) => t.some((x: any) => x.url === u))
-        );
       });
     }
   }, []);
 
-  /** Fetch LLM suggestions for the active tab URL and title. */
-  const fetchSuggestionsForTab = useCallback((tabUrl: string, tabTitle: string, tabId?: number) => {
+  /** In-memory cache mapping tab URLs to AI suggestion arrays. */
+  const suggestionsCacheRef = useRef<Map<string, string[]>>(new Map());
+  /** Ref for debouncing suggestion requests when switching tabs rapidly. */
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Track timestamps of recent API calls for client-side rate limiting. */
+  const apiCallTimesRef = useRef<number[]>([]);
+  /** Track last tab URL for which suggestion fetch was triggered. */
+  const lastSuggestedUrlRef = useRef<string>('');
+  /** Max API calls allowed per 60 seconds rolling window. */
+  const MAX_CALLS_PER_MINUTE = 5;
+  /** Debounce delay in ms before triggering suggestion API call. */
+  const DEBOUNCE_MS = 500;
+
+  /** Fetch AI suggestions from /api/suggestions with caching, debouncing, and rate limiting. */
+  const fetchSuggestionsForTab = useCallback((tabUrl: string, tabTitle: string) => {
     if (!tabUrl || tabUrl.startsWith('chrome://') || tabUrl.startsWith('about:')) {
       setActiveTabSuggestions([]);
+      setSuggestionsLoading(false);
+      lastSuggestedUrlRef.current = tabUrl;
       return;
     }
 
-    if (lastSuggestedUrlRef.current === tabUrl) return;
+    // 1. Instant Cache Hit Check (0ms delay, 0 network calls)
+    if (suggestionsCacheRef.current.has(tabUrl)) {
+      setActiveTabSuggestions(suggestionsCacheRef.current.get(tabUrl)!);
+      setSuggestionsLoading(false);
+      lastSuggestedUrlRef.current = tabUrl;
+      return;
+    }
+
+    // 2. Strict URL Guard: If we have already initiated suggestion fetch for this EXACT tab URL, skip!
+    if (lastSuggestedUrlRef.current === tabUrl) {
+      return;
+    }
     lastSuggestedUrlRef.current = tabUrl;
 
-    console.log('[Obot][suggestions] active tab:', tabUrl, '| title:', tabTitle);
-    setSuggestionsLoading(true);
-    setActiveTabSuggestions([]);
+    // 3. Clear any pending debounced request from previous tab switch
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
 
-    const runSuggestions = (pageText: string) => {
-      console.log('[Obot][suggestions] posting to /api/suggestions, pageText len:', pageText.length);
+    // Clear old suggestions and show shimmer loading state while waiting for API
+    setActiveTabSuggestions([]);
+    setSuggestionsLoading(true);
+
+    // 4. Debounce: wait 500ms before calling /api/suggestions
+    debounceTimerRef.current = setTimeout(() => {
+      const now = Date.now();
+      apiCallTimesRef.current = apiCallTimesRef.current.filter(t => now - t < 60000);
+
+      if (apiCallTimesRef.current.length >= MAX_CALLS_PER_MINUTE) {
+        console.warn(`[Obot][suggestions] Rate limit reached (${MAX_CALLS_PER_MINUTE}/min).`);
+        setSuggestionsLoading(false);
+        return;
+      }
+
+      apiCallTimesRef.current.push(now);
+
       fetch(`${WORKER_URL}/api/suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: tabUrl, title: tabTitle, pageText }),
+        body: JSON.stringify({ url: tabUrl, title: tabTitle }),
       })
         .then((r) => r.json())
         .then((data: any) => {
           if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+            suggestionsCacheRef.current.set(tabUrl, data.suggestions);
             setActiveTabSuggestions(data.suggestions);
           } else {
-            console.log('[Obot][suggestions] no suggestions in response');
+            setActiveTabSuggestions([]);
           }
         })
-        .catch((e) => { console.log('[Obot][suggestions] fetch error:', e); })
-        .finally(() => setSuggestionsLoading(false));
-    };
-
-    if (typeof chrome !== 'undefined' && chrome.scripting?.executeScript && tabId) {
-      chrome.scripting.executeScript({
-        target: { tabId },
-        func: () => {
-          return (document.body?.innerText || '')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 4000);
-        }
-      })
-        .then((results) => {
-          const pageText = (results && results[0]) ? (results[0].result || '') : '';
-          runSuggestions(pageText);
+        .catch((e) => {
+          console.log('[Obot][suggestions] fetch error:', e);
+          setActiveTabSuggestions([]);
         })
-        .catch((err) => {
-          console.warn('[Obot][suggestions] executeScript failed:', err);
-          runSuggestions('');
-        });
-    } else {
-      runSuggestions('');
-    }
+        .finally(() => setSuggestionsLoading(false));
+    }, DEBOUNCE_MS);
   }, []);
+
+  /** Map of tabUrl -> threadId attached to that tab. */
+  const tabThreadMapRef = useRef<Map<string, string>>(new Map());
+
+  /** Keep tabThreadMap updated when activeThreadId changes. */
+  useEffect(() => {
+    if (activeThreadId && activeTabUrl && !activeTabUrl.startsWith('chrome://')) {
+      tabThreadMapRef.current.set(activeTabUrl, activeThreadId);
+    }
+  }, [activeThreadId, activeTabUrl]);
 
   /** Refresh current active tab state, tab chips, and suggestions when user switches or updates tabs. */
   const refreshActiveTab = useCallback(() => {
@@ -212,27 +239,28 @@ export default function App() {
       if (!tabs || tabs.length === 0) return;
       const tabUrl   = tabs[0]?.url   || '';
       const tabTitle = tabs[0]?.title || '';
-      const tabId    = tabs[0]?.id;
 
       if (tabUrl)   setActiveTabUrl(tabUrl);
       if (tabTitle) setActiveTabTitle(tabTitle);
 
       if (tabUrl && !tabUrl.startsWith('chrome://') && !tabUrl.startsWith('about:')) {
-        const oldActiveUrl = prevActiveTabUrlRef.current;
         prevActiveTabUrlRef.current = tabUrl;
 
-        setSelectedUrls(prev => {
-          if (prev.length === 0) return [tabUrl];
-          if (prev.length === 1 && prev[0] === oldActiveUrl) return [tabUrl];
-          if (!prev.includes(tabUrl)) return [...prev, tabUrl];
-          return prev;
-        });
+        // Reset selectedUrls to current tab URL only
+        setSelectedUrls([tabUrl]);
+
+        // Tab-specific thread lookup: if tab has no attached thread, show Welcome Screen
+        const threadForThisTab = tabThreadMapRef.current.get(tabUrl);
+        if (threadForThisTab) {
+          setActiveThreadId(threadForThisTab);
+        } else {
+          setActiveThreadId('');
+        }
 
         fetchTabs();
-        fetchSuggestionsForTab(tabUrl, tabTitle, tabId);
       }
     });
-  }, [fetchTabs, fetchSuggestionsForTab]);
+  }, [fetchTabs, setActiveThreadId]);
 
   /** On mount & tab events: fetch tabs, auth status, update active tab info, and listen for live tab changes. */
   useEffect(() => {
@@ -244,11 +272,9 @@ export default function App() {
     });
 
     const handleMessage = (message: any) => {
-      if (
-        message.type === 'tab:activated' ||
-        message.type === 'tab:updated'
-      ) {
-        fetchTabs();
+      if (message.type === 'tab:activated') {
+        refreshActiveTab();
+      } else if (message.type === 'tab:updated' && message.url && message.url !== prevActiveTabUrlRef.current) {
         refreshActiveTab();
       }
     };
@@ -258,8 +284,8 @@ export default function App() {
       refreshActiveTab();
     };
 
-    const handleTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
-      if (tab.active && (changeInfo.status === 'complete' || changeInfo.url || changeInfo.title)) {
+    const handleTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (changeInfo.url && changeInfo.url !== prevActiveTabUrlRef.current) {
         refreshActiveTab();
       }
     };
@@ -332,6 +358,15 @@ export default function App() {
   const toggleUrl = (url: string) =>
     setSelectedUrls(prev => prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]);
 
+  /** Handle new chat creation, unbinding current tab thread. */
+  const handleNewChat = useCallback(() => {
+    if (activeTabUrl) {
+      tabThreadMapRef.current.delete(activeTabUrl);
+      fetchSuggestionsForTab(activeTabUrl, activeTabTitle);
+    }
+    _handleNewChat();
+  }, [_handleNewChat, activeTabUrl, activeTabTitle, fetchSuggestionsForTab]);
+
   /** Render the Plugins screen when activeView is 'plugins'. */
   if (activeView === 'plugins') {
     return (
@@ -358,7 +393,7 @@ export default function App() {
         activeThreadId={activeThreadId}
         activeThreadTitle={activeThreadTitle}
         updateActiveThreadTitle={updateActiveThreadTitle}
-        handleNewChat={_handleNewChat}
+        handleNewChat={handleNewChat}
         handleDeleteThread={handleDeleteThread}
         ensureThreadEntry={ensureThreadEntry}
         threads={threads}

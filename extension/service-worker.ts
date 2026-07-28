@@ -5,10 +5,10 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.runtime.sendMessage({ type: 'tab:activated', tabId: activeInfo.tabId }).catch(() => {});
 });
 
-// Track tab navigation/updates and notify runtime if active tab updated
+// Track tab navigation/updates and notify runtime if active tab URL updated
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active && (changeInfo.status === 'complete' || changeInfo.url || changeInfo.title)) {
-    chrome.runtime.sendMessage({ type: 'tab:updated', tabId, changeInfo }).catch(() => {});
+  if (tab.active && changeInfo.url) {
+    chrome.runtime.sendMessage({ type: 'tab:updated', tabId, url: changeInfo.url }).catch(() => {});
   }
 });
 

@@ -80,7 +80,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 <button
                   key={text}
                   className="suggestion-chip"
-                  onClick={() => onSuggestionClick(text)}
+                  onClick={() => onSuggestionClick?.(text)}
                 >
                   <span className="suggestion-chip-text">{text}</span>
                 </button>

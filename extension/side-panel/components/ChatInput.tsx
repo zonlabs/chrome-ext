@@ -130,8 +130,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {selectedUrls.length > 0 && (
         <div className="input-header-row">
           <div className="input-header-left">
-            {!showSelected && selectedTabs.slice(0, 3).map((t: any) => (
-              <Favicon key={t.url} url={t.url} size={16} className="input-header-favicon" />
+            {!showSelected && selectedTabs.slice(0, 3).map((t: any, idx: number) => (
+              <Favicon key={t.tabId ? `header-${t.url}-${t.tabId}` : `header-${t.url}-${idx}`} url={t.url} size={16} className="input-header-favicon" />
             ))}
             <span className="input-header-text">
               Sharing {selectedTabs.length} tab{selectedTabs.length > 1 ? 's' : ''}
@@ -153,8 +153,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           {showSelected && selectedUrls.length > 0 && (
             <>
               <div id="selected-detail">
-                {selectedTabs.map((t: any) => (
-                  <div key={t.url} className="detail-row">
+                {selectedTabs.map((t: any, idx: number) => (
+                  <div key={t.tabId ? `detail-${t.url}-${t.tabId}` : `detail-${t.url}-${idx}`} className="detail-row">
                     <Favicon url={t.url} size={18} className="detail-row-favicon" />
                     <span className="detail-row-title">{t.title || t.url}</span>
                     {t.active && (
@@ -185,11 +185,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <div style={{ padding: '6px 12px', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
               Open Tabs
             </div>
-            {tabs.map((t: any) => {
+            {tabs.map((t: any, idx: number) => {
               const isSelected = selectedUrls.includes(t.url);
               return (
                 <div
-                  key={t.url}
+                  key={t.tabId ? `popup-${t.url}-${t.tabId}` : `popup-${t.url}-${idx}`}
                   className={`popup-item ${isSelected ? 'active' : ''}`}
                   onClick={() => onToggleUrl(t.url)}
                 >

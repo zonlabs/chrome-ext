@@ -1490,11 +1490,19 @@ details pre {
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  padding: 38px 24px 24px 24px;
+  padding: 12px 8px;
+  width: 100%;
+  box-sizing: border-box;
   font-family: inherit;
-  gap: 12px;
+  gap: 10px;
+  overflow: hidden;
 }
 
+#messages:has(.welcome-container) {
+  overflow: hidden;
+  justify-content: center;
+  padding: 12px 10px;
+}
 
 .welcome-greeting {
   font-size: 28px;
@@ -2527,5 +2535,4 @@ details pre {
 .plugins-status-error {
   color: #e74c3c;
 }
-
 
