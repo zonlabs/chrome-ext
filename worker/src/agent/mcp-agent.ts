@@ -20,6 +20,21 @@ export class McpAgent<Env extends Cloudflare.Env = Cloudflare.Env> extends AICha
   }
 
   /**
+   * Handles incoming HTTP requests sent directly to this Agent instance.
+   * Intercepts MCP OAuth callback redirects and exchanges authorization codes for access tokens.
+   *
+   * @param request - Incoming HTTP Request object.
+   * @returns HTTP Response handling the callback or a 404 response.
+   */
+  async onRequest(request: Request): Promise<Response> {
+    const oauthResponse = await (this as any).handleMcpOAuthCallback?.(request);
+    if (oauthResponse) {
+      return oauthResponse;
+    }
+    return new Response('Not Found', { status: 404 });
+  }
+
+  /**
    * Lists all connected MCP servers on this agent.
    *
    * @returns Object describing current MCP servers and their connection states.
@@ -101,7 +116,7 @@ export class McpAgent<Env extends Cloudflare.Env = Cloudflare.Env> extends AICha
   }
 
   /**
-   * Executes an MCP tool on a connected server.
+   * Execute an MCP tool on a connected server.
    * Called by `McpProxy` in child chat DOs via DO-to-DO RPC.
    *
    * @param serverId - ID of the target MCP server.
