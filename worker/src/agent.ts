@@ -80,7 +80,6 @@ export class ChatAgent extends AIChatAgent<Env> {
     } catch (err) {
       const msg = `Error with model "${modelName}": ${err instanceof Error ? err.message : String(err)}`;
       console.error('[ChatAgent]', msg);
-      console.timeEnd('[ChatAgent] onChatMessage total');
       return new Response(msg, { status: 500 });
     }
   }
