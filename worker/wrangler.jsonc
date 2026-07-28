@@ -31,9 +31,16 @@
       { "name": "McpAgent", "class_name": "McpAgent" }
     ]
   },
-  "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["ChatAgent", "McpAgent"] }
-  ],
+  "exports": {
+    "ChatAgent": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "McpAgent": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
   "worker_loaders": [
     {
       "binding": "LOADER"

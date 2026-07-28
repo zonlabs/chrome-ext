@@ -262,13 +262,14 @@ export default function App() {
         if (threadForThisTab) {
           setActiveThreadId(threadForThisTab);
         } else {
-          setActiveThreadId('');
+          setActiveThreadId(crypto.randomUUID());
+          fetchSuggestionsForTab(tabUrl, tabTitle);
         }
 
         fetchTabs();
       }
     });
-  }, [fetchTabs, setActiveThreadId]);
+  }, [fetchTabs, setActiveThreadId, fetchSuggestionsForTab]);
 
   /** On mount & tab events: fetch tabs, auth status, update active tab info, and listen for live tab changes. */
   useEffect(() => {
