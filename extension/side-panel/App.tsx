@@ -6,6 +6,7 @@ import { ChatView } from './components/ChatView';
 import { PluginsSubscription } from './components/PluginsSubscription';
 import { ChatSkeleton } from './components/ChatSkeleton';
 import { getPluginsAgentId } from './utils/agentId';
+import { getActiveTabPageContext } from './utils/clientTools';
 import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../shared/constants';
 
 /** Main application component — orchestrates state, side-effects, and view routing (chat vs plugins). */
@@ -187,7 +188,7 @@ export default function App() {
     setSuggestionsLoading(true);
 
     // 4. Debounce: wait 500ms before calling /api/suggestions
-    debounceTimerRef.current = setTimeout(() => {
+    debounceTimerRef.current = setTimeout(async () => {
       const now = Date.now();
       apiCallTimesRef.current = apiCallTimesRef.current.filter(t => now - t < 60000);
 
@@ -199,10 +200,17 @@ export default function App() {
 
       apiCallTimesRef.current.push(now);
 
+      // Extract rich page context (headings, paragraphs, content excerpts)
+      let pageText = '';
+      try {
+        const ctx = await getActiveTabPageContext();
+        if (ctx?.text) pageText = ctx.text;
+      } catch {}
+
       fetch(`${WORKER_URL}/api/suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: tabUrl, title: tabTitle }),
+        body: JSON.stringify({ url: tabUrl, title: tabTitle, pageText }),
       })
         .then((r) => r.json())
         .then((data: any) => {

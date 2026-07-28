@@ -12,7 +12,7 @@ route.post('/suggestions', async (c) => {
   const contextBlock = [
     `Tab URL: ${url}`,
     `Tab Title: ${title}`,
-    pageText ? `Page excerpt:\n${pageText.slice(0, 600)}` : '',
+    pageText ? `Page Context:\n${pageText.slice(0, 2000)}` : '',
   ].filter(Boolean).join('\n');
 
   const prompt = `You are a helpful browser assistant. Based on the browser tab context below, generate exactly 3 short, highly relevant questions or prompts that the user is most likely to want to ask. The prompts should feel natural, specific to the content, and immediately useful.
