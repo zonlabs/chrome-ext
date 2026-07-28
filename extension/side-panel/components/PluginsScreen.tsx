@@ -197,7 +197,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
 
   /** Agent connection for MCP state streaming — receives server, tool, and resource updates. */
   const agent = useAgent({
-    agent: 'ChatAgent',
+    agent: 'Orchestrator',
     name: agentId,
     host: WORKER_URL,
     onClose: useCallback(() => setConnectionStatus('disconnected'), []),

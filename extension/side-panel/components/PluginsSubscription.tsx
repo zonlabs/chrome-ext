@@ -14,7 +14,7 @@ const NOOP = () => {};
 /** Subscribes to MCP plugin updates for a given agent via the Agents SDK. */
 export function PluginsSubscription({ agentId, onMcpUpdate }: PluginsSubscriptionProps) {
   const agentOptions = useMemo(() => ({
-    agent: 'ChatAgent',
+    agent: 'Orchestrator',
     name: agentId,
     host: WORKER_URL,
     onIdentityChange: NOOP,

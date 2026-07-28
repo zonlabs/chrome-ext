@@ -3,14 +3,15 @@ import { cors } from 'hono/cors';
 import { routeAgentRequest } from 'agents';
 
 import { Env } from './db/schema';
-import { ChatAgent } from './agent';
+import { Orchestrator } from './agents/Orchestrator';
+import { ChatAgent } from './agents/ChatAgent';
 import chatRoute from './routes/chat';
 import authRoute from './routes/auth';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
 import faviconRoute from './routes/favicon';
 
-export { ChatAgent };
+export { ChatAgent, Orchestrator };
 export { CodemodeRuntime } from '@cloudflare/codemode';
 
 const EXTENSION_ID = 'llihcpikannlnjolgcmbebnoihokiffn';

@@ -35,7 +35,7 @@ export class SkillRegistry {
   /** Match user prompt against skill trigger keywords */
   matchSkills(userPrompt: string): AgentSkill[] {
     const lower = userPrompt.toLowerCase();
-    return this.getAllSkills().filter(skill => 
+    return this.getAllSkills().filter(skill =>
       skill.triggers.some(trigger => lower.includes(trigger.toLowerCase()))
     );
   }
@@ -67,7 +67,7 @@ export class SkillRegistry {
             return `Skill "${name}" not found. Available skills: ${allSkills.map(s => s.name).join(', ')}`;
           }
           console.log(`[SkillRegistry] Successfully activated skill: "${skill.name}" (${skill.id})`);
-          return `[Activated Skill: ${skill.name}]\n<skill_content name="${skill.name}">\n${skill.systemPromptSnippet}\n</skill_content>`;
+          return `<skill_content name="${skill.name}">\n${skill.systemPromptSnippet}\n</skill_content>`;
         }
       })
     };

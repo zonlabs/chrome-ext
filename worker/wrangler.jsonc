@@ -23,9 +23,12 @@
     "binding": "AI"
   },
   "durable_objects": {
-    "bindings": [{ "name": "ChatAgent", "class_name": "ChatAgent" }]
+    "bindings": [
+      { "name": "ChatAgent", "class_name": "ChatAgent" },
+      { "name": "Orchestrator", "class_name": "Orchestrator" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatAgent"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatAgent", "Orchestrator"] }],
   "worker_loaders": [
     {
       "binding": "LOADER"

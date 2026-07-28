@@ -86,12 +86,24 @@ export function ChatView(props: ChatViewProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPluginsPopup]);
 
-  /** Memoized agent configuration object — ensures useAgent returns a stable connection instance across renders. */
-  const agentOptions = useMemo(() => ({
-    agent: 'ChatAgent',
-    name: activeThreadId,
-    host: WORKER_URL,
-  }), [activeThreadId]);
+  /** Memoized agent configuration object — connects to ChatAgent sub-agent under user's Orchestrator parent. */
+  const agentOptions = useMemo(() => {
+    if (pluginsAgentId) {
+      return {
+        agent: 'Orchestrator',
+        name: pluginsAgentId,
+        host: WORKER_URL,
+        sub: [
+          { agent: 'ChatAgent', name: activeThreadId }
+        ]
+      };
+    }
+    return {
+      agent: 'ChatAgent',
+      name: activeThreadId,
+      host: WORKER_URL,
+    };
+  }, [pluginsAgentId, activeThreadId]);
 
   /** Raw agent connection for the current active thread. */
   const rawAgent = useAgent(agentOptions);
@@ -183,13 +195,17 @@ export function ChatView(props: ChatViewProps) {
   /** Dismissible error toast message, or null when hidden. */
   const [toastError, setToastError] = useState<string | null>(null);
 
-  /** Listen for broadcasted chat:title events from the agent backend to update the thread title. */
+  const [subAgentInfo, setSubAgentInfo] = useState<string | null>('ChatAgent');
+
+  /** Listen for broadcasted chat:title and subagent:active events from the agent backend. */
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'chat:title' && data.title) {
           updateActiveThreadTitle(data.title);
+        } else if (data.type === 'subagent:active' && data.subAgent) {
+          setSubAgentInfo(data.subAgent);
         }
       } catch { }
     }
@@ -350,16 +366,20 @@ export function ChatView(props: ChatViewProps) {
   return (
     <>
       <header id="header">
-        <div className="header-title-container" style={{ flex: 1, minWidth: 0 }}>
+        <div className="header-title-container" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
           {activeThreadTitle && (
             <span
               className="brand"
               title={activeThreadTitle}
-              style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >
               {activeThreadTitle}
             </span>
           )}
+          <span className="subagent-pill" title="Executing inside ChatAgent sub-agent under Orchestrator">
+            <span className="subagent-dot" />
+            Sub-agent
+          </span>
         </div>
 
         <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -1,7 +1,5 @@
 import type { ToolSet } from "ai";
 import { z } from "zod";
-import type { ChatAgent } from "./agent";
-
 
 export interface McpToolDescriptor {
   name: string;
@@ -15,13 +13,13 @@ export interface McpToolDescriptor {
 }
 
 export class McpProxy {
-  #stubPromise?: Promise<DurableObjectStub<ChatAgent>>;
+  #stubPromise?: Promise<any>;
 
   constructor(
-    private getParent: () => Promise<DurableObjectStub<ChatAgent>>
+    private getParent: () => Promise<any>
   ) {}
 
-  private parent(): Promise<DurableObjectStub<ChatAgent>> {
+  private parent(): Promise<any> {
     this.#stubPromise ??= this.getParent();
     return this.#stubPromise;
   }
