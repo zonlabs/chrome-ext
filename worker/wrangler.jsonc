@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "obot-db",
-      "database_id": "16d9cb71-da9c-4dc8-8b8a-f0d4b491b56e"
+      "database_id": "bd29e8f1-d971-4d76-9504-b24a99a344d2"
     }
   ],
   "kv_namespaces": [
@@ -32,8 +32,7 @@
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["ChatAgent"] },
-    { "tag": "v2", "new_sqlite_classes": ["McpAgent"] }
+    { "tag": "v1", "new_sqlite_classes": ["ChatAgent", "McpAgent"] }
   ],
   "worker_loaders": [
     {
