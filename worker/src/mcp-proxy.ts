@@ -1,6 +1,6 @@
 import type { ToolSet } from "ai";
 import { z } from "zod";
-import type { ChatAgent } from "./agent";
+import type { McpAgent } from "./agent/mcp-agent";
 
 
 export interface McpToolDescriptor {
@@ -15,31 +15,20 @@ export interface McpToolDescriptor {
 }
 
 export class McpProxy {
-  #stubPromise?: Promise<DurableObjectStub<ChatAgent>>;
+  #stubPromise?: Promise<DurableObjectStub<McpAgent>>;
 
   constructor(
-    private getParent: () => Promise<DurableObjectStub<ChatAgent>>
+    private getParent: () => Promise<DurableObjectStub<McpAgent>>
   ) {}
 
-  private parent(): Promise<DurableObjectStub<ChatAgent>> {
+  private parent(): Promise<DurableObjectStub<McpAgent>> {
     this.#stubPromise ??= this.getParent();
     return this.#stubPromise;
   }
 
   async getAITools(timeoutMs = 5_000, serverFilter?: string[]): Promise<ToolSet> {
-    console.log(`[McpProxy] getAITools called, timeoutMs=${timeoutMs}`);
-
     const parent = await this.parent();
-    console.log(`[McpProxy] got parent stub, calling listMcpToolDescriptors...`);
-
     const descriptors = await parent.listMcpToolDescriptors(timeoutMs, serverFilter) as unknown as McpToolDescriptor[];
-
-    console.log(`[McpProxy] listMcpToolDescriptors returned ${descriptors.length} items`);
-    if (descriptors.length === 0) {
-      console.log(`[McpProxy] WARNING: 0 descriptors — tools won't be available`);
-    } else {
-      descriptors.forEach(d => console.log(`[McpProxy] descriptor: serverId=${d.serverId} name=${d.name} hasInputSchema=${!!d.inputSchema}`));
-    }
 
     const entries: [string, ToolSet[string]][] = [];
     for (const descriptor of descriptors) {
@@ -58,15 +47,12 @@ export class McpProxy {
               ? z.fromJSONSchema(inputSchema as Parameters<typeof z.fromJSONSchema>[0])
               : z.fromJSONSchema({ type: "object" }),
             execute: async (args) => {
-              console.log(`[McpProxy] execute: serverId=${serverId} name=${name}`);
               const stub = await this.parent();
-              console.log(`[McpProxy] calling callMcpTool(${serverId}, ${name})`);
               const result = await stub.callMcpTool(
                 serverId,
                 name,
                 args as Record<string, unknown>
               );
-              console.log(`[McpProxy] callMcpTool result isError=${(result as any).isError}`);
               if ((result as any).isError) {
                 const content = (result as any).content as Array<{ type: string; text?: string }> | undefined;
                 const firstText = content?.[0];

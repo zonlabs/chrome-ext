@@ -1,37 +1,39 @@
-import { AIChatAgent } from "@cloudflare/ai-chat";
-import { callable } from "agents";
+import { Agent, callable } from "agents";
 
 /**
- * Base Durable Object class managing Model Context Protocol (MCP) server lifecycle,
- * OAuth callback configurations, plugin subscriptions, and cross-DO RPC invocations.
+ * Parent Durable Object managing user-level MCP plugin lifecycle,
+ * OAuth callback routing, and sub-agent access gates for thread ChatAgents.
  *
- * @template Env - Worker environment bindings constraint.
+ * Extends {@link Agent} directly so the Cloudflare Agents framework derives
+ * the agent route prefix as `mcp-agent`, enabling OAuth callback URLs at
+ * `/agents/mcp-agent/{name}/callback` to resolve natively.
  */
-export class McpAgent<Env extends Cloudflare.Env = Cloudflare.Env> extends AIChatAgent<Env> {
+export class McpAgent extends Agent<Env> {
   /**
-   * Initializes the Durable Object on startup and configures OAuth handlers for plugin sessions.
+   * Initializes the Durable Object on startup and configures the OAuth success redirect.
+   * Called on every DO wake — ensures `handleMcpOAuthCallback` can complete the code
+   * exchange and redirect correctly even after a cold start.
    */
-  async onStart() {
-    if (this.name.startsWith('plugins-user')) {
-      this.mcp.configureOAuthCallback({
-        successRedirect: '/api/auth/callback',
-      });
-    }
+  override async onStart() {
+    this.mcp.configureOAuthCallback({
+      successRedirect: '/api/auth/callback',
+    });
   }
 
   /**
-   * Handles incoming HTTP requests sent directly to this Agent instance.
-   * Intercepts MCP OAuth callback redirects and exchanges authorization codes for access tokens.
+   * Access gate callback invoked before a WebSocket connection is upgraded to a sub-agent.
+   * Validates access permissions before frames flow directly to the child ChatAgent.
    *
    * @param request - Incoming HTTP Request object.
-   * @returns HTTP Response handling the callback or a 404 response.
+   * @param child - Object containing target sub-agent class name and instance ID.
+   * @returns The original request to authorize, or a Response to reject.
    */
-  async onRequest(request: Request): Promise<Response> {
-    const oauthResponse = await (this as any).handleMcpOAuthCallback?.(request);
-    if (oauthResponse) {
-      return oauthResponse;
-    }
-    return new Response('Not Found', { status: 404 });
+  override async onBeforeSubAgent(
+    request: Request,
+    child: { className: string; name: string }
+  ): Promise<void | Response | Request> {
+    console.log(`[McpAgent:${this.name}] Authorizing sub-agent: className=${child.className}, name=${child.name}`);
+    return request;
   }
 
   /**
@@ -88,36 +90,25 @@ export class McpAgent<Env extends Cloudflare.Env = Cloudflare.Env> extends AICha
 
   /**
    * Returns MCP tool descriptors for all connected servers on this DO.
-   * Called by `McpProxy` in child chat DOs via DO-to-DO RPC.
+   * Called by `McpProxy` in child ChatAgent DOs via DO-to-DO RPC.
    *
    * @param timeoutMs - Connection wait timeout in milliseconds.
    * @param serverFilter - Optional array of server IDs to filter tools.
    * @returns Array of raw tool descriptor objects.
    */
   async listMcpToolDescriptors(timeoutMs = 10_000, serverFilter?: string[]): Promise<unknown[]> {
-    console.log(`[listMcpToolDescriptors] name=${this.name}, timeout=${timeoutMs}ms`);
-
-    try {
-      await (this.mcp as any).restoreConnectionsFromStorage(this.name);
-    } catch (err) {
-      console.warn(`[listMcpToolDescriptors] restoreConnectionsFromStorage error:`, err);
+    const servers = this.getMcpServers().servers;
+    if (Object.keys(servers).length === 0) {
+      return [];
     }
-
-    const servers = this.getMcpServers();
-    const serverStates = Object.entries(servers.servers).map(([id, s]) => `${id}=${(s as any).state}`).join(', ');
-    console.log(`[listMcpToolDescriptors] servers: ${serverStates}`);
-
     await this.mcp.waitForConnections({ timeout: timeoutMs });
-
     const filter = serverFilter && serverFilter.length > 0 ? { serverId: serverFilter } : undefined;
-    const allTools = this.mcp.listTools(filter);
-    console.log(`[listMcpToolDescriptors] returning ${allTools.length} tools${filter ? ` (filtered to ${serverFilter!.length} servers)` : ''}`);
-    return allTools;
+    return this.mcp.listTools(filter);
   }
 
   /**
-   * Execute an MCP tool on a connected server.
-   * Called by `McpProxy` in child chat DOs via DO-to-DO RPC.
+   * Executes an MCP tool on a connected server.
+   * Called by `McpProxy` in child ChatAgent DOs via DO-to-DO RPC.
    *
    * @param serverId - ID of the target MCP server.
    * @param name - Name of the tool function to call.

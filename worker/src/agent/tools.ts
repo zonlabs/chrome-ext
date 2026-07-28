@@ -20,7 +20,6 @@ export async function resolveAgentTools(
   const clientTools = options?.clientTools?.length
     ? createToolsFromClientSchemas(options.clientTools)
     : {};
-  console.log("client tools :", clientTools);
 
   const pluginsAgentId = options?.body?.pluginsAgentId as string | undefined;
   const enabledPlugins = options?.body?.enabledPlugins as string[] | undefined;
@@ -29,7 +28,7 @@ export async function resolveAgentTools(
   if (pluginsAgentId) {
     try {
       const sharedMcp = new McpProxy(() =>
-        Promise.resolve(env.ChatAgent.get(env.ChatAgent.idFromName(pluginsAgentId)))
+        Promise.resolve(env.McpAgent.get(env.McpAgent.idFromName(pluginsAgentId)))
       );
       mcpTools = await sharedMcp.getAITools(5_000, enabledPlugins);
     } catch (err) {

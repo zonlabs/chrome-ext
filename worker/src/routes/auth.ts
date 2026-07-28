@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { auth } from '../utils/auth';
+import { getAuthSuccessHtml } from '../templates/authSuccess';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -125,6 +126,14 @@ app.get('/auth/me', async (c) => {
     console.error('Auth check error:', err);
     return c.json({ user: null });
   }
+});
+
+/** ── GET /api/auth/callback ────────────────────────────────────────────────────
+*   OAuth success landing page. Served after the McpAgent DO completes the MCP
+*   OAuth code exchange and redirects to successRedirect: '/api/auth/callback'.
+*/
+app.get('/auth/callback', (c) => {
+  return c.html(getAuthSuccessHtml());
 });
 
 export default app;

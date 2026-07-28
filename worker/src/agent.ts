@@ -1,27 +1,44 @@
-import { OnChatMessageOptions } from "@cloudflare/ai-chat";
+import { AIChatAgent, OnChatMessageOptions } from "@cloudflare/ai-chat";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage } from "ai";
 
-import { McpAgent } from "./agent/mcp-agent";
 import { DEFAULT_MODEL, buildSystemPrompt } from "./agent/models";
 import { extractFirstUserMessage, prepareModelMessages, generateChatTitle } from "./agent/messages";
 import { resolveAgentTools } from "./agent/tools";
 
 /**
- * Primary Durable Object class handling conversational AI thread state,
+ * Chat thread Durable Object handling conversational AI state,
  * streaming LLM completions, message context enrichment, and persistence.
  *
- * Extends {@link McpAgent} to inherit MCP plugin management and RPC tool capabilities.
+ * Extends {@link AIChatAgent} directly — MCP plugin management lives in
+ * the parent {@link McpAgent} DO; ChatAgent only handles chat.
  */
-export class ChatAgent extends McpAgent<Env> {
+export class ChatAgent extends AIChatAgent<Env> {
+  /**
+   * MCP connections are managed in the parent {@link McpAgent} DO via {@link McpProxy}.
+   * Disable the AIChatAgent's automatic MCP wait (default: 10s) on this DO
+   * since it has none — otherwise every message blocks for the full timeout.
+   */
+  override waitForMcpConnections = false;
+
   private _userId: string | null = null;
 
   /**
+   * Handles incoming HTTP requests to this DO.
+   * The AIChatAgent wrapper handles `/get-messages`; this catch-all
+   * prevents the base Agent warning for root-path requests from
+   * sub-agent forwarding or agent health checks.
+   */
+  async onRequest(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/" || url.pathname === "") {
+      return new Response("OK", { status: 200 });
+    }
+    return super.onRequest(request);
+  }
+
+  /**
    * Primary message handler invoked when a chat message stream is requested by the client.
-   *
-   * @param _onFinish - Callback executed when text streaming completes.
-   * @param _options - Request options containing user ID, model choice, page context, and client schemas.
-   * @returns HTTP Response containing UI message stream.
    */
   async onChatMessage(
     _onFinish: GenerateTextOnEndCallback,
@@ -56,12 +73,14 @@ export class ChatAgent extends McpAgent<Env> {
         },
       });
 
-      return createUIMessageStreamResponse({
+      const response = createUIMessageStreamResponse({
         stream: toUIMessageStream({ stream: result.stream }),
       });
+      return response;
     } catch (err) {
       const msg = `Error with model "${modelName}": ${err instanceof Error ? err.message : String(err)}`;
       console.error('[ChatAgent]', msg);
+      console.timeEnd('[ChatAgent] onChatMessage total');
       return new Response(msg, { status: 500 });
     }
   }
@@ -69,10 +88,6 @@ export class ChatAgent extends McpAgent<Env> {
   /**
    * Overrides SQLite message persistence behavior to ensure unauthenticated threads
    * or deleted client message IDs are properly cleaned up in Cloudflare D1 storage.
-   *
-   * @param messages - Complete list of current thread messages.
-   * @param excludeBroadcastIds - Message IDs to omit from WebSocket broadcast.
-   * @param options - Additional framework persistence flags.
    */
   override async persistMessages(
     messages: UIMessage[],

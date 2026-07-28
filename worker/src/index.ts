@@ -3,14 +3,14 @@ import { cors } from 'hono/cors';
 import { routeAgentRequest } from 'agents';
 
 import { ChatAgent } from './agent';
+import { McpAgent } from './agent/mcp-agent';
 import { auth } from './utils/auth';
 import authRoute from './routes/auth';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
 import faviconRoute from './routes/favicon';
-import { getAuthSuccessHtml } from './templates/authSuccess';
 
-export { ChatAgent };
+export { ChatAgent, McpAgent };
 export { CodemodeRuntime } from '@cloudflare/codemode';
 
 const EXTENSION_ID = 'llihcpikannlnjolgcmbebnoihokiffn';
@@ -53,13 +53,6 @@ app.route('/api', faviconRoute);
 
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
-/**
- * OAuth success callback route — rendered after completing MCP server authorization.
- * Uses external template from `./templates/authSuccess`.
- */
-app.get('/api/auth/callback', (c) => {
-  return c.html(getAuthSuccessHtml());
-});
 
 /**
  * Attaches CORS headers to a Cloudflare Worker Response object.
