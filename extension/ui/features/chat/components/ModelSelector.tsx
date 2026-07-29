@@ -1,6 +1,6 @@
 import React, { useMemo, useState, RefObject } from 'react';
 import { Check, Search, ChevronDown } from 'lucide-react';
-import { ModelEntry } from '../../shared/types';
+import { ModelEntry } from '../../../../shared/types';
 
 /** Props for the ModelSelector component. */
 interface ModelSelectorProps {
@@ -61,7 +61,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   }, [filteredModels]);
 
   const selectedModelIconUrl = selectedModelIcon
-    ? chrome.runtime.getURL(`icons/models/${selectedModelIcon}`)
+    ? chrome.runtime.getURL(`ui/assets/icons/models/${selectedModelIcon}`)
     : '';
 
   return (
@@ -107,7 +107,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   <div className="model-selector-group-header">{provider}</div>
                   {items.map((m) => {
                     const isSelected = model === m.value;
-                    const iconUrl = chrome.runtime.getURL(`icons/models/${m.icon}`);
+                    const iconUrl = chrome.runtime.getURL(`ui/assets/icons/models/${m.icon}`);
                     return (
                       <div
                         key={m.value}

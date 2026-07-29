@@ -1,8 +1,8 @@
 import React, { RefObject } from 'react';
 import { Plus, ChevronDown, Check, ArrowUp, Square, X } from 'lucide-react';
-import { Tab, ModelTier, ModelEntry } from '../../shared/types';
+import { Tab, ModelTier, ModelEntry } from '../../../../shared/types';
 import { ModelSelector } from './ModelSelector';
-import { Favicon, safeUrl } from './Favicon';
+import { Favicon, safeUrl } from '../../../shared/Favicon';
 
 /** Small red circle with a white check — used to indicate a selected tab in the attach popup. */
 const CircleCheckIcon = () => (

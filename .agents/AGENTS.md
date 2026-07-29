@@ -12,13 +12,13 @@
 
 ### 1. Chrome Extension (`/extension`)
 - **Framework**: React 19 + TypeScript.
-- **Bundler**: esbuild (`main.tsx` -> `side-panel/dist/app.js`, `service-worker.ts` -> `dist/service-worker.js`, `content-script.ts` -> `dist/content-script.js`).
-- **Components (`/extension/side-panel/components`)**:
+- **Bundler**: esbuild (`ui/app/main.tsx` -> `ui/dist/app.js`, `service-worker.ts` -> `dist/service-worker.js`, `content-script.ts` -> `dist/content-script.js`).
+- **Components (`/extension/ui/features/chat/components`)**:
   - `ChatView.tsx`: Main chat view orchestrating thread state, streaming, client tool execution, and layout.
   - `ChatInput.tsx`: Input capsule with tab attachment popup, selected tabs header, model picker, and submit actions.
   - `WelcomeScreen.tsx`: Greeting interface with page context badge and LLM-suggested prompts.
   - `PluginsScreen.tsx` & `PluginsSubscription.tsx`: MCP plugin configuration and live status updates.
-- **Utilities (`/extension/side-panel/utils`)**:
+- **Utilities (`/extension/ui/features/chat`)**:
   - `clientTools.ts`: Page context extraction (`getActiveTabPageContext`), screenshot capture (`captureScreenshot`), and client-side tool handlers.
   - `useThreads.ts`: Active thread CRUD and state management.
 
@@ -39,7 +39,7 @@
   - Page context extraction must remain non-intrusive and non-blocking.
   - Always pass `url`, `title`, and `pageText` (from `getActiveTabPageContext()`) to `/api/suggestions` for deep context awareness.
 - **UI & Design Aesthetics**:
-  - Use Vanilla CSS in `extension/side-panel/style.css`.
+  - Use Vanilla CSS in `extension/ui/style.css`.
   - Maintain glassmorphism aesthetics, subtle micro-animations (e.g. pulse indicators, shimmer glows), and dark-mode styling (`--bg-primary`, `--bg-secondary`, `--text-primary`, `--red`).
 - **State Cleanup**:
   - Avoid leaving dead or unused `useRef` / `useState` hooks. Clean up unneeded tab mapping refs or redundant properties.

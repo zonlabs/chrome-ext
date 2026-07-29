@@ -2,6 +2,7 @@
   "name": "obot-app",
   "private": true,
   "scripts": {
+    "test:ext": "cd extension && npm test",
     "build": "npm run build:ext",
     "build:ext": "cd extension && npm run build",
     "build:ext:dev": "cd extension && npm run build:dev",

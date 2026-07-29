@@ -3,10 +3,11 @@
   "version": "0.1.6",
   "private": true,
   "scripts": {
+    "test": "node --test ui/app/App.plugins.test.mjs ui/app/Structure.test.mjs ui/features/chat/ThreadOwnership.test.mjs ui/features/chat/ChatView.deprecation.test.mjs",
     "sync-version": "node -e \"const fs=require('fs'),pkg=require('./package.json'),m=JSON.parse(fs.readFileSync('./manifest.json','utf8'));m.version=pkg.version;fs.writeFileSync('./manifest.json',JSON.stringify(m,null,2)+'\\n');console.log('Synced manifest.json version to ' + pkg.version);\"",
-    "build": "npm run sync-version && esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"production\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"production\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"production\\\"",
-    "build:dev": "npm run sync-version && esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"development\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"development\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"development\\\"",
-    "watch": "npm run sync-version && esbuild side-panel/main.tsx --bundle --outfile=side-panel/dist/app.js --loader:.tsx=tsx --watch"
+    "build": "npm run sync-version && esbuild ui/app/main.tsx --bundle --outfile=ui/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"production\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"production\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"production\\\"",
+    "build:dev": "npm run sync-version && esbuild ui/app/main.tsx --bundle --outfile=ui/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"development\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"development\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"development\\\"",
+    "watch": "npm run sync-version && esbuild ui/app/main.tsx --bundle --outfile=ui/dist/app.js --loader:.tsx=tsx --watch"
   },
   "dependencies": {
     "@cloudflare/ai-chat": "^0.10.0",

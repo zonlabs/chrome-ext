@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Settings2 } from 'lucide-react';
-import { WORKER_URL } from '../../shared/constants';
+import { WORKER_URL } from '../../../../shared/constants';
 
 type Plugin = { id: string; name: string; url: string; state?: string };
 

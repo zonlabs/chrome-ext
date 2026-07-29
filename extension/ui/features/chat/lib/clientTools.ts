@@ -1,5 +1,5 @@
 import { AITool } from '@cloudflare/ai-chat/react';
-import { ClientToolsContext } from '../../shared/types';
+import { ClientToolsContext } from '../../../../shared/types';
 
 /** Helper to check if a URL is restricted by browser security policy (e.g. chrome://, chrome-extension://). */
 function isRestrictedUrl(url?: string): boolean {

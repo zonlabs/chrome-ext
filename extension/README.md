@@ -15,35 +15,21 @@ Chrome extension side panel for the Obot AI assistant. Connects to the Obot Work
 
 ```
 extension/
-├── manifest.json          — Chrome extension manifest
-├── service-worker.ts      — Background service worker
-├── content-script.ts      — Page content script
-├── shared/
-│   ├── constants.ts       — App-wide constants (WORKER_URL, models, etc.)
-│   └── types.ts           — Shared type definitions
-└── side-panel/
-    ├── main.tsx           — React entry point
-    ├── App.tsx            — Root component (auth, DO connections, routing)
-    ├── style.css          — All styles
-    ├── index.html         — Side panel HTML
-    ├── components/
-    │   ├── ChatView.tsx       — Chat message thread + input
-    │   ├── ChatInput.tsx      — Message compose bar
-    │   ├── MessageItem.tsx    — Individual message renderer
-    │   ├── ReasoningBlock.tsx — Model reasoning toggle
-    │   ├── ToolCallAccordion.tsx — Tool call details
-    │   ├── PluginsScreen.tsx  — MCP server manager (add/remove/connect)
-    │   ├── PluginsSubscription.tsx — Listens for MCP state changes
-    │   ├── ChatSkeleton.tsx   — Loading skeleton
-    │   ├── WelcomeScreen.tsx  — Empty state
-    │   ├── ModelSelector.tsx  — Model picker
-    │   ├── HistoryPopup.tsx   — Thread history
-    │   ├── CodeBlock.tsx      — Code syntax highlighting
-    │   ├── Favicon.tsx        — Domain favicon display
-    │   └── LoadingIndicator.tsx
-    └── utils/
-        ├── agentId.ts      — DO naming helpers
-        └── toolNames.ts    — Tool formatting utilities
+|-- manifest.json          - Chrome extension manifest
+|-- service-worker.ts      - Background service worker
+|-- content-script.ts      - Page content script
+|-- shared/                - Shared constants and types
+`-- ui/
+    |-- app/               - React entry point, root component, app tests
+    |-- features/
+    |   |-- chat/          - Chat components, thread hook, utilities, tests
+    |   `-- plugins/       - Plugin components and agent-ID utility
+    |-- shared/            - Cross-feature UI components
+    |-- assets/
+    |   |-- fonts/         - UI font assets
+    |   `-- icons/         - Extension and model icons
+    |-- style.css          - Global UI styles
+    `-- index.html         - Extension UI HTML
 ```
 
 ## Architecture

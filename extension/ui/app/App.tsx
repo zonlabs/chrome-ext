@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 
-import { useThreads } from './utils/useThreads';
-import { PluginsScreen } from './components/PluginsScreen';
-import { ChatView } from './components/ChatView';
-import { PluginsSubscription } from './components/PluginsSubscription';
-import { ChatSkeleton } from './components/ChatSkeleton';
-import { getPluginsAgentId } from './utils/agentId';
-import { getActiveTabPageContext } from './utils/clientTools';
-import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../shared/constants';
+import { useThreads } from '../features/chat/hooks/useThreads';
+import { PluginsScreen } from '../features/plugins/components/PluginsScreen';
+import { ChatView } from '../features/chat/components/ChatView';
+import { PluginsSubscription } from '../features/plugins/components/PluginsSubscription';
+import { ChatSkeleton } from '../features/chat/components/ChatSkeleton';
+import { getPluginsAgentId } from '../features/plugins/lib/agentId';
+import { getActiveTabPageContext } from '../features/chat/lib/clientTools';
+import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../../shared/constants';
 
 /** Main application component Ã¢â‚¬â€ orchestrates state, side-effects, and view routing (chat vs plugins). */
 export default function App() {

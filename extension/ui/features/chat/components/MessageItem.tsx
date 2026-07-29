@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RotateCw, Copy, MoreVertical, ChevronDown, ChevronRight, Pencil, Check, ChevronsUpDown, Wrench } from 'lucide-react';
 import { getToolApproval } from '@cloudflare/ai-chat/react';
-import { renderMarkdown } from '../utils/markdown';
-import { formatToolName } from '../utils/toolNames';
+import { renderMarkdown } from '../lib/markdown';
+import { formatToolName } from '../lib/toolNames';
 import { ReasoningBlock } from './ReasoningBlock';
 import { ToolCallAccordion } from './ToolCallAccordion';
 

@@ -32,7 +32,7 @@ export function ChatHeader(props: ChatHeaderProps) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id;
       if (!tabId) return;
-      window.open(chrome.runtime.getURL(`side-panel/index.html?popout=true&tabId=${tabId}`), 'Obot', 'width=450,height=600,menubar=no,toolbar=no,location=no,status=no');
+      window.open(chrome.runtime.getURL(`ui/index.html?popout=true&tabId=${tabId}`), 'Obot', 'width=450,height=600,menubar=no,toolbar=no,location=no,status=no');
       window.close();
     });
   }, [popoutMode]);

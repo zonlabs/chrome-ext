@@ -4,14 +4,14 @@ import { useAgentChat } from '@cloudflare/ai-chat/react';
 import { CircleX, X } from 'lucide-react';
 
 import { ChatHeader } from './ChatHeader';
-import { ChatPluginBar } from './ChatPluginBar';
+import { ChatPluginBar } from '../../plugins/components/ChatPluginBar';
 import { WelcomeScreen } from './WelcomeScreen';
 import { MessageItem } from './MessageItem';
 import { ChatInput } from './ChatInput';
 import { LoadingIndicator } from './LoadingIndicator';
-import { createClientTools, captureScreenshot, getActiveTabPageContext } from '../utils/clientTools';
-import { WORKER_URL, MODELS_DATA } from '../../shared/constants';
-import { ChatViewProps } from '../../shared/types';
+import { createClientTools, captureScreenshot, getActiveTabPageContext } from '../lib/clientTools';
+import { WORKER_URL, MODELS_DATA } from '../../../../shared/constants';
+import { ChatViewProps } from '../../../../shared/types';
 
 /** Chat panel ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â renders the header, message list, welcome/loading states, input bar, and plugin controls. */
 type InitialMessageRequest = {
@@ -224,7 +224,7 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
   /** Whether the side panel is currently opened as a detached popout window. */
   const popoutMode = new URLSearchParams(window.location.search).has('popout');
 
-  /** Toggle between side-panel and popout window modes. */
+  /** Toggle between the sidebar and popout window modes. */
   const handleTogglePopout = useCallback(() => {
     if (popoutMode) {
       const params = new URLSearchParams(window.location.search);
@@ -239,7 +239,7 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
     } else {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tabId = tabs[0]?.id || 0;
-        const url = chrome.runtime.getURL(`side-panel/index.html?popout=true&tabId=${tabId}`);
+        const url = chrome.runtime.getURL(`ui/index.html?popout=true&tabId=${tabId}`);
         window.open(url, 'Obot', 'width=450,height=600,menubar=no,toolbar=no,location=no,status=no');
         window.close();
       });

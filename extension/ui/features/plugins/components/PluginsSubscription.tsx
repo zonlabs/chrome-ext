@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAgent } from 'agents/react';
 
-import { WORKER_URL } from '../../shared/constants';
+import { WORKER_URL } from '../../../../shared/constants';
 
 /** Props for the PluginsSubscription component. */
 interface PluginsSubscriptionProps {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LS_ACTIVE, LS_THREADS, WORKER_URL } from '../../shared/constants';
+import { LS_ACTIVE, LS_THREADS, WORKER_URL } from '../../../../shared/constants';
 
 export interface ChatThread { id: string; title: string; createdAt: number; }
 type AuthSnapshot = { jwt: string | null };

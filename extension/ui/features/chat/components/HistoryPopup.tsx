@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlignLeft, Trash2, LogOut, LogIn, Puzzle } from 'lucide-react';
-import { LS_ACTIVE } from '../../shared/constants';
+import { LS_ACTIVE } from '../../../../shared/constants';
 
 /** A single chat thread entry displayed in the history list. */
 interface ChatThread {

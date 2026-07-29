@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, AlertCircle, Image, Wrench, Search, Globe, List, FileText, AppWindow, SquareTerminal } from 'lucide-react';
-import { getToolSummary, formatToolName } from '../utils/toolNames';
+import { getToolSummary, formatToolName } from '../lib/toolNames';
 
 /** Props for the ToolCallAccordion component. */
 interface ToolCallAccordionProps {

@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const threadsHook = readFileSync(new URL('./utils/useThreads.ts', import.meta.url), 'utf8');
-const app = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8');
+const threadsHook = readFileSync(new URL('./hooks/useThreads.ts', import.meta.url), 'utf8');
+const app = readFileSync(new URL('../../app/App.tsx', import.meta.url), 'utf8');
 const chatView = readFileSync(new URL('./components/ChatView.tsx', import.meta.url), 'utf8');
-const chatPluginBar = readFileSync(new URL('./components/ChatPluginBar.tsx', import.meta.url), 'utf8');
-const clientTools = readFileSync(new URL('./utils/clientTools.ts', import.meta.url), 'utf8');
+const chatPluginBar = readFileSync(new URL('../plugins/components/ChatPluginBar.tsx', import.meta.url), 'utf8');
+const clientTools = readFileSync(new URL('./lib/clientTools.ts', import.meta.url), 'utf8');
 
 test('the extension never generates a chat thread id', () => {
   assert.doesNotMatch(threadsHook, /crypto\.randomUUID\s*\(/);

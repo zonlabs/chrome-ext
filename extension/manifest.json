@@ -37,19 +37,19 @@
     "type": "module"
   },
   "side_panel": {
-    "default_path": "side-panel/index.html"
+    "default_path": "ui/index.html"
   },
   "action": {
     "default_title": "Obot",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "ui/assets/icons/icon16.png",
+      "48": "ui/assets/icons/icon48.png",
+      "128": "ui/assets/icons/icon128.png"
     }
   },
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "ui/assets/icons/icon16.png",
+    "48": "ui/assets/icons/icon48.png",
+    "128": "ui/assets/icons/icon128.png"
   }
 }

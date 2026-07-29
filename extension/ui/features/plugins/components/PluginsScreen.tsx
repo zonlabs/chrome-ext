@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ArrowLeft, Trash2, Cpu, FileText, Plus, ChevronDown, ChevronRight, Globe, CircleCheck, XCircle, Loader, Lock } from 'lucide-react';
 import { useAgent } from 'agents/react';
 
-import { WORKER_URL } from '../../shared/constants';
+import { WORKER_URL } from '../../../../shared/constants';
 
 /** Pre-configured quick-plugins that can be connected with a single click. */
 const BUILTIN_PLUGINS = [
