@@ -1,163 +1,50 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LS_ACTIVE, LS_THREADS, WORKER_URL } from '../../shared/constants';
 
-/** A single chat thread with its metadata. */
-export interface ChatThread {
-  id: string;
-  title: string;
-  createdAt: number;
+export interface ChatThread { id: string; title: string; createdAt: number; }
+type AuthSnapshot = { jwt: string | null };
+const THREAD_STATE_VERSION = 'obot_server_threads_v1';
+
+function readAuthSnapshot(): Promise<AuthSnapshot> {
+  return new Promise(resolve => chrome.runtime.sendMessage({ type: 'auth:snapshot' }, response => resolve({ jwt: response?.jwt ?? null })));
 }
-
-import { WORKER_URL, LS_THREADS, LS_ACTIVE } from '../../shared/constants';
-
-function readLocalThreads(): ChatThread[] {
-  try {
-    const raw = localStorage.getItem(LS_THREADS);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+function clearLegacyThreadState() {
+  if (localStorage.getItem(THREAD_STATE_VERSION)) return;
+  localStorage.removeItem(LS_THREADS); localStorage.removeItem(LS_ACTIVE); localStorage.setItem(THREAD_STATE_VERSION, '1');
 }
-
-function writeLocalThreads(threads: ChatThread[]) {
-  localStorage.setItem(LS_THREADS, JSON.stringify(threads));
-}
-
-function readLocalActiveId(): string {
-  const saved = localStorage.getItem(LS_ACTIVE);
-  if (saved) return saved;
-  const id = crypto.randomUUID();
-  localStorage.setItem(LS_ACTIVE, id);
-  return id;
-}
-
-async function getJwt(): Promise<string | null> {
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type: 'jwt:get' }, (response) => {
-      resolve(response?.jwt ?? null);
-    });
-  });
-}
-
-async function apiFetch(path: string, options?: RequestInit) {
-  const jwt = await getJwt();
-  return fetch(`${WORKER_URL}/api${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {}),
-      ...(options?.headers ?? {}),
-    },
-  });
-}
-
-/** React hook for managing chat threads with localStorage persistence and server sync. */
-export function useThreads(persist: boolean = true) {
-  const [threads, setThreads] = useState<ChatThread[]>(() => persist ? readLocalThreads() : []);
-  const [activeThreadId, setActiveThreadIdState] = useState<string>(persist ? readLocalActiveId() : crypto.randomUUID());
-
-  const didSyncRef = useRef(false);
-
+export function useThreads(enabled: boolean, onAuthLost: () => void) {
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const apiFetch = useCallback(async (path: string, options?: RequestInit) => {
+    const { jwt } = await readAuthSnapshot();
+    if (!jwt) { onAuthLost(); throw new Error('Your session has expired. Please sign in again.'); }
+    const response = await fetch(`${WORKER_URL}/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}`, ...(options?.headers ?? {}) } });
+    if (response.status === 401) { chrome.runtime.sendMessage({ type: 'auth:clear' }); onAuthLost(); throw new Error('Your session has expired. Please sign in again.'); }
+    return response;
+  }, [onAuthLost]);
   useEffect(() => {
-    if (!persist) return;
-    setThreads(prev => prev.length === 0 ? readLocalThreads() : prev);
-    if (didSyncRef.current) return;
-    didSyncRef.current = true;
-
-    apiFetch('/threads')
-      .then(r => r.ok ? r.json() : { threads: [] })
-      .then(({ threads: remote }: { threads: ChatThread[] }) => {
-        if (!remote || remote.length === 0) return;
-        setThreads(local => {
-          const remoteIds = new Set(remote.map(t => t.id));
-          const localOnly = local.filter(t => !remoteIds.has(t.id));
-          const merged = [...remote, ...localOnly];
-          merged.sort((a, b) => b.createdAt - a.createdAt);
-          writeLocalThreads(merged);
-          return merged;
-        });
-      })
-      .catch(() => {});
-  }, [persist]);
-
-  const activeThreadTitle = useMemo(() => {
-    const found = threads.find(t => t.id === activeThreadId);
-    return found ? found.title : '';
-  }, [threads, activeThreadId]);
-
-  const setActiveThreadId = useCallback((id: string) => {
-    setActiveThreadIdState(id);
-    if (persist) localStorage.setItem(LS_ACTIVE, id);
-  }, [persist]);
-
-  const syncUpsert = useCallback((thread: ChatThread) => {
-    apiFetch('/threads', {
-      method: 'POST',
-      body: JSON.stringify(thread),
-    }).catch(() => {});
-  }, []);
-
-  const syncDelete = useCallback((id: string) => {
-    apiFetch(`/threads/${id}`, { method: 'DELETE' }).catch(() => {});
-  }, []);
-
-  const ensureThreadEntry = useCallback(() => {
-    setThreads(prev => {
-      const exists = prev.some(t => t.id === activeThreadId);
-      if (exists) return prev;
-      const thread: ChatThread = { id: activeThreadId, title: 'New Chat', createdAt: Date.now() };
-      const updated = [thread, ...prev];
-      if (persist) {
-        writeLocalThreads(updated);
-        syncUpsert(thread);
-      }
-      return updated;
-    });
-  }, [activeThreadId, syncUpsert, persist]);
-
-  const updateActiveThreadTitle = useCallback((promptText: string) => {
-    setThreads(prev => {
-      const idx = prev.findIndex(t => t.id === activeThreadId);
-      if (idx === -1) return prev;
-      if (prev[idx].title !== 'New Chat') return prev;
-      const truncated = promptText.length > 35 ? promptText.slice(0, 32) + '...' : promptText;
-      const next = { ...prev[idx], title: truncated };
-      const updated = [...prev];
-      updated[idx] = next;
-      if (persist) {
-        writeLocalThreads(updated);
-        syncUpsert(next);
-      }
-      return updated;
-    });
-  }, [activeThreadId, syncUpsert, persist]);
-
-  const handleNewChat = useCallback(() => {
-    const newId = crypto.randomUUID();
-    setActiveThreadIdState(newId);
-    if (persist) localStorage.setItem(LS_ACTIVE, newId);
-  }, [persist]);
-
-  const handleDeleteThread = useCallback((id: string) => {
-    setThreads(prev => {
-      const updated = prev.filter(t => t.id !== id);
-      if (persist) writeLocalThreads(updated);
-      if (id === activeThreadId) {
-        const nextId = updated.length > 0 ? updated[0].id : crypto.randomUUID();
-        setTimeout(() => setActiveThreadId(nextId), 0);
-      }
-      return updated;
-    });
-    if (persist) syncDelete(id);
-  }, [activeThreadId, setActiveThreadId, syncDelete, persist]);
-
-  return {
-    threads,
-    activeThreadId,
-    setActiveThreadId,
-    activeThreadTitle,
-    updateActiveThreadTitle,
-    handleNewChat,
-    handleDeleteThread,
-    ensureThreadEntry,
-  };
+    clearLegacyThreadState();
+    if (!enabled) { setThreads([]); setActiveThreadId(null); return; }
+    let disposed = false;
+    void apiFetch('/threads').then(async response => { if (!response.ok) throw new Error('Unable to load chat history.'); const { threads: remote } = await response.json() as { threads: ChatThread[] }; if (!disposed) setThreads(remote); }).catch(() => {});
+    return () => { disposed = true; };
+  }, [enabled, apiFetch]);
+  const createThread = useCallback(async () => {
+    const response = await apiFetch('/threads', { method: 'POST', body: JSON.stringify({ title: 'New Chat' }) });
+    if (!response.ok) throw new Error('Unable to create a chat.');
+    const { thread } = await response.json() as { thread: ChatThread }; setThreads(previous => [thread, ...previous]); setActiveThreadId(thread.id); return thread;
+  }, [apiFetch]);
+  const updateActiveThreadTitle = useCallback(async (title: string) => {
+    if (!activeThreadId) return; const current = threads.find(thread => thread.id === activeThreadId);
+    if (!current || current.title !== 'New Chat') return;
+    const nextTitle = title.length > 35 ? `${title.slice(0, 32)}...` : title;
+    const response = await apiFetch(`/threads/${activeThreadId}`, { method: 'PATCH', body: JSON.stringify({ title: nextTitle }) });
+    if (response.ok) setThreads(previous => previous.map(thread => thread.id === activeThreadId ? { ...thread, title: nextTitle } : thread));
+  }, [activeThreadId, apiFetch, threads]);
+  const handleDeleteThread = useCallback(async (id: string) => {
+    const response = await apiFetch(`/threads/${id}`, { method: 'DELETE' }); if (!response.ok) return;
+    setThreads(previous => previous.filter(thread => thread.id !== id)); if (activeThreadId === id) setActiveThreadId(null);
+  }, [activeThreadId, apiFetch]);
+  const activeThreadTitle = useMemo(() => threads.find(thread => thread.id === activeThreadId)?.title ?? '', [threads, activeThreadId]);
+  return { threads, activeThreadId, setActiveThreadId, activeThreadTitle, createThread, updateActiveThreadTitle, handleNewChat: () => setActiveThreadId(null), handleDeleteThread };
 }

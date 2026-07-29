@@ -37,6 +37,14 @@ chrome.runtime.onMessage.addListener((
     });
   } else if (message.type === 'config:get') {
     sendResponse({ workerUrl: WORKER_URL });
+  } else if (message.type === 'auth:snapshot') {
+    chrome.storage.local.get(['jwt', 'user'], (result) => {
+      sendResponse({ jwt: result.jwt ?? null, user: result.user ?? null });
+    });
+  } else if (message.type === 'auth:clear') {
+    chrome.storage.local.remove(['jwt', 'user']).then(() => {
+      sendResponse({ success: true });
+    });
   } else if (message.type === 'jwt:get') {
     chrome.storage.local.get('jwt', (result) => {
       sendResponse({ jwt: result.jwt ?? null });

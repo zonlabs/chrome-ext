@@ -44,14 +44,14 @@ export type FileUIPart = {
 
 /** All props passed to the ChatView component. */
 export interface ChatViewProps {
-  activeThreadId: string;
+  activeThreadId: string | null;
   activeThreadTitle: string;
   updateActiveThreadTitle: (title: string) => void;
   handleNewChat: () => void;
   handleDeleteThread: (id: string) => void;
-  ensureThreadEntry: () => void;
+  createThread: () => Promise<{ id: string; title: string; createdAt: number }>;
   threads: { id: string; title: string; createdAt: number }[];
-  setActiveThreadId: (id: string) => void;
+  setActiveThreadId: (id: string | null) => void;
   model: string;
   user: any;
   tabs: any[];

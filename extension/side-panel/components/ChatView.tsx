@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
-import { SquarePen, MoreVertical, PictureInPicture2, CircleX, Settings2, Check, X } from 'lucide-react';
+import { CircleX, X } from 'lucide-react';
 
-import { HistoryPopup } from './HistoryPopup';
+import { ChatHeader } from './ChatHeader';
+import { ChatPluginBar } from './ChatPluginBar';
 import { WelcomeScreen } from './WelcomeScreen';
 import { MessageItem } from './MessageItem';
 import { ChatInput } from './ChatInput';
@@ -12,15 +13,22 @@ import { createClientTools, captureScreenshot, getActiveTabPageContext } from '.
 import { WORKER_URL, MODELS_DATA } from '../../shared/constants';
 import { ChatViewProps } from '../../shared/types';
 
-/** Chat panel — renders the header, message list, welcome/loading states, input bar, and plugin controls. */
-export function ChatView(props: ChatViewProps) {
+/** Chat panel ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â renders the header, message list, welcome/loading states, input bar, and plugin controls. */
+type InitialMessageRequest = {
+  text: string;
+  context: { pageContext: { url: string; title: string; text: string } | null; screenshot: string | null };
+};
+
+function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialMessageRequest; onInitialMessageSent?: () => void }) {
   const {
     activeThreadId,
+    initialRequest,
+    onInitialMessageSent,
     activeThreadTitle,
     updateActiveThreadTitle,
     handleNewChat: _handleThreadNewChat,
     handleDeleteThread,
-    ensureThreadEntry,
+
     threads,
     setActiveThreadId,
     model,
@@ -93,11 +101,11 @@ export function ChatView(props: ChatViewProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPluginsPopup]);
 
-  /** Memoized agent configuration object — ensures useAgent returns a stable connection instance across renders. */
+  /** Memoized agent configuration object ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ensures useAgent returns a stable connection instance across renders. */
   const agentOptions = useMemo(() => ({
     agent: 'McpAgent',
     name: pluginsAgentId,
-    sub: [{ agent: 'ChatAgent', name: activeThreadId }],
+    sub: [{ agent: 'ChatAgent', name: activeThreadId! }],
     host: WORKER_URL,
   }), [pluginsAgentId, activeThreadId]);
 
@@ -144,7 +152,7 @@ export function ChatView(props: ChatViewProps) {
   }) => {
     const tool = clientTools[toolCall.toolName];
     if (!tool?.execute) {
-      // Server-side tool (e.g. codemode) — executed on worker, ignore on client
+      // Server-side tool (e.g. codemode) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â executed on worker, ignore on client
       return;
     }
 
@@ -187,7 +195,15 @@ export function ChatView(props: ChatViewProps) {
     onToolCall: handleToolCall,
     tools: clientTools,
     prepareSendMessagesRequest,
+  syncMessagesToServer: false,
   });
+
+  useEffect(() => {
+    if (!initialRequest) return;
+    pendingContextRef.current = initialRequest.context;
+    sendMessage({ text: initialRequest.text });
+    onInitialMessageSent?.();
+  }, [initialRequest, onInitialMessageSent, sendMessage]);
 
   /** Dismissible error toast message, or null when hidden. */
   const [toastError, setToastError] = useState<string | null>(null);
@@ -258,7 +274,7 @@ export function ChatView(props: ChatViewProps) {
         const ctx = await getActiveTabPageContext();
         let screenshot: string | null = null;
         const modelEntry = MODELS_DATA.find(m => m.value === model);
-        if (modelEntry?.hasVision && ctx) {
+        if (modelEntry?.hasVision) {
           screenshot = await captureScreenshot();
         }
         pendingContextRef.current = { pageContext: ctx, screenshot };
@@ -317,17 +333,17 @@ export function ChatView(props: ChatViewProps) {
     }
   }, [isAborted, status, chatError]);
 
-  /** Submit the current input value — screen context captured into pendingContextRef (sent via body, hidden from UI). */
+  /** Submit the current input value ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â screen context captured into pendingContextRef (sent via body, hidden from UI). */
   const handleSubmit = useCallback(async () => {
     if (!inputValue.trim()) return;
     setIsAborted(false);
-    ensureThreadEntry();
+
 
     try {
       const ctx = await getActiveTabPageContext();
       let screenshot: string | null = null;
       const modelEntry = MODELS_DATA.find(m => m.value === model);
-      if (modelEntry?.hasVision && ctx) {
+      if (modelEntry?.hasVision) {
         screenshot = await captureScreenshot();
       }
       pendingContextRef.current = { pageContext: ctx, screenshot };
@@ -338,7 +354,7 @@ export function ChatView(props: ChatViewProps) {
     sendMessage({ text: inputValue });
     setInputValue('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
-  }, [inputValue, model, ensureThreadEntry, sendMessage, setInputValue, inputRef]);
+  }, [inputValue, model, sendMessage, setInputValue, inputRef]);
 
   /** Submit on Enter (without Shift), allowing Shift+Enter for newlines. */
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -396,64 +412,7 @@ export function ChatView(props: ChatViewProps) {
 
   return (
     <>
-      <header id="header">
-        <div className="header-title-container" style={{ flex: 1, minWidth: 0 }}>
-          {activeThreadTitle && (
-            <span
-              className="brand"
-              title={activeThreadTitle}
-              style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            >
-              {activeThreadTitle}
-            </span>
-          )}
-        </div>
-
-        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button className="header-icon-btn" title="New Chat" onClick={handleNewChat}>
-            <SquarePen size={18} />
-          </button>
-
-          <div style={{ position: 'relative' }} ref={historyRef}>
-            <button
-              className={`header-icon-btn ${showHistoryPopup ? 'active' : ''}`}
-              title="Menu"
-              onClick={() => setShowHistoryPopup(!showHistoryPopup)}
-            >
-              <MoreVertical size={18} />
-            </button>
-            {showHistoryPopup && (
-              <HistoryPopup
-                threads={threads}
-                activeThreadId={activeThreadId}
-                setActiveThreadId={setActiveThreadId}
-                setShowHistoryPopup={setShowHistoryPopup}
-                onDeleteThread={handleDeleteThread}
-                user={user}
-                onSignIn={onSignIn}
-                signingIn={signingIn}
-                onSignOut={onSignOut}
-                onOpenPlugins={onOpenPlugins}
-              />
-            )}
-          </div>
-
-          {user && (
-            user.picture ? (
-              <img className="header-avatar-img" src={user.picture} alt="" title={user.name} />
-            ) : (
-              <div className="header-avatar" title={user.name}>
-                {user.name?.charAt(0).toUpperCase() || '?'}
-              </div>
-            )
-          )}
-
-          <button className="header-icon-btn" title={popoutMode ? 'Attach to sidebar' : 'Pop out chat'} onClick={handleTogglePopout}>
-            <PictureInPicture2 size={18} />
-          </button>
-        </div>
-      </header>
-
+      <ChatHeader title={activeThreadTitle} activeThreadId={activeThreadId} threads={threads} setActiveThreadId={setActiveThreadId} showHistoryPopup={showHistoryPopup} setShowHistoryPopup={setShowHistoryPopup} historyRef={historyRef} onNewChat={handleNewChat} onDeleteThread={handleDeleteThread} user={user} onSignIn={onSignIn} signingIn={signingIn} onSignOut={onSignOut} onOpenPlugins={onOpenPlugins} />
       <div id="messages">
         {messages.length === 0 ? (
           <WelcomeScreen
@@ -491,116 +450,7 @@ export function ChatView(props: ChatViewProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {user && (
-        <div className="chat-plugins-bar">
-          <div className="chat-plugins-active-list">
-            {(() => {
-              const enabled = availablePlugins.filter(p => !disabledPlugins.includes(p.id) && (!p.state || p.state === 'ready'));
-              const visible = enabled.slice(0, 2);
-              const remaining = enabled.length - 2;
-              return (
-                <>
-                  {visible.map(p => {
-                    const domain = (() => {
-                      try { return new URL(p.url).hostname; } catch { return ''; }
-                    })();
-                    const faviconUrl = domain ? `${WORKER_URL}/api/favicon?hostname=${domain}` : '';
-                    return (
-                      <div key={p.id} className="active-plugin-tag" title={`Plugin: ${p.name}`}>
-                        {faviconUrl ? (
-                          <img
-                            src={faviconUrl}
-                            alt=""
-                            className="active-plugin-favicon"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                              const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div className="active-plugin-fallback-icon" style={{ display: faviconUrl ? 'none' : 'flex' }}>
-                          {(p.name || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <span className="active-plugin-name">{p.name}</span>
-                      </div>
-                    );
-                  })}
-                  {remaining > 0 && (
-                    <div className="active-plugin-tag remaining-count" title={`${remaining} more plugins enabled`}>
-                      <span>+{remaining}</span>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`chat-plugins-btn ${showPluginsPopup ? 'active' : ''}`}
-              onClick={() => setShowPluginsPopup(!showPluginsPopup)}
-              title="Configure Plugins"
-            >
-              <Settings2 size={18} />
-            </button>
-
-            {showPluginsPopup && (
-              <div className="plugins-selector-popup" ref={pluginsPopupRef}>
-                <div className="plugins-selector-header">Plugin Access</div>
-                <div className="plugins-selector-list">
-                  {availablePlugins.length === 0 ? (
-                    <div className="plugins-selector-empty">No plugins connected</div>
-                  ) : (
-                    availablePlugins.map(p => {
-                      const isEnabled = !disabledPlugins.includes(p.id);
-                      const domain = (() => {
-                        try { return new URL(p.url).hostname; } catch { return ''; }
-                      })();
-                      const faviconUrl = domain ? `${WORKER_URL}/api/favicon?hostname=${domain}` : '';
-                      return (
-                        <div
-                          key={p.id}
-                          className="plugins-selector-item"
-                          onClick={() => onTogglePlugin?.(p.id)}
-                        >
-                          <div className="plugins-selector-item-left">
-                            {faviconUrl ? (
-                              <img
-                                src={faviconUrl}
-                                alt=""
-                                className="plugins-selector-favicon"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                  const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div className="plugins-selector-fallback-icon" style={{ display: faviconUrl ? 'none' : 'flex' }}>
-                              {(p.name || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <span className="plugins-selector-name">{p.name}</span>
-                            {p.state && (
-                              <span className={`plugins-selector-status plugins-status-${p.state}`}>
-                                {p.state}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className={`plugins-selector-checkbox ${isEnabled ? 'checked' : ''}`}>
-                            {isEnabled && <Check size={10} strokeWidth={4} color="#ffffff" />}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <ChatPluginBar user={user} availablePlugins={availablePlugins} disabledPlugins={disabledPlugins} onTogglePlugin={onTogglePlugin} />
 
       <ChatInput
         inputValue={inputValue}
@@ -646,4 +496,54 @@ export function ChatView(props: ChatViewProps) {
       )}
     </>
   );
+}
+
+
+function EmptyThreadChatView(props: ChatViewProps & { isCreating: boolean; onSubmit: () => void }) {
+  return (
+    <>
+      <ChatHeader activeThreadId={null} threads={props.threads} setActiveThreadId={props.setActiveThreadId} showHistoryPopup={props.showHistoryPopup} setShowHistoryPopup={props.setShowHistoryPopup} historyRef={props.historyRef} onNewChat={props.handleNewChat} onDeleteThread={props.handleDeleteThread} user={props.user} onSignIn={props.onSignIn} signingIn={props.signingIn} onSignOut={props.onSignOut} onOpenPlugins={props.onOpenPlugins} />      <div id="messages"><WelcomeScreen user={props.user} onSuggestionClick={props.setInputValue} onSignIn={props.onSignIn} signingIn={props.signingIn} activeTabUrl={props.activeTabUrl} activeTabTitle={props.activeTabTitle} llmSuggestions={props.activeTabSuggestions} suggestionsLoading={props.suggestionsLoading} /></div>
+      <ChatPluginBar user={props.user} availablePlugins={props.availablePlugins} disabledPlugins={props.disabledPlugins} onTogglePlugin={props.onTogglePlugin} />
+      <ChatInput inputValue={props.inputValue} setInputValue={props.setInputValue} inputRef={props.inputRef} isStreaming={props.isCreating} onSubmit={props.onSubmit} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); props.onSubmit(); } }} showPopup={props.showPopup} setShowPopup={props.setShowPopup} attachPopupRef={props.attachPopupRef} tabs={props.tabs} selectedUrls={props.selectedUrls} activeTabUrl={props.activeTabUrl} onToggleUrl={props.onToggleUrl} showSelected={props.showSelected} setShowSelected={props.setShowSelected} selectedPanelRef={props.selectedPanelRef} showModelPopup={props.showModelPopup} setShowModelPopup={props.setShowModelPopup} modelDropdownRef={props.modelDropdownRef} model={props.model} modelsData={MODELS_DATA} selectedModelLabel={props.selectedModelLabel} selectedModelIcon={props.selectedModelIcon} onSelectModel={props.onSelectModel} onStop={() => {}} />
+    </>
+  );
+}
+/** Chat shell: no durable-object connection exists until the worker allocates an ID. */
+export function ChatView(props: ChatViewProps) {
+  const [pendingInitialMessage, setPendingInitialMessage] = useState<InitialMessageRequest | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const creatingThreadRef = useRef(false);
+
+  const createAndSend = async () => {
+    const text = props.inputValue.trim();
+    if (!text) return;
+    if (creatingThreadRef.current) return;
+    creatingThreadRef.current = true;
+    setIsCreating(true);
+    try {
+      let context: InitialMessageRequest['context'] = { pageContext: null, screenshot: null };
+      try {
+        const pageContext = await getActiveTabPageContext();
+        const modelEntry = MODELS_DATA.find(entry => entry.value === props.model);
+        context = {
+          pageContext,
+          screenshot: modelEntry?.hasVision ? await captureScreenshot() : null,
+        };
+      } catch {
+        // Context capture is best-effort; sending the user's prompt must still work.
+      }
+      await props.createThread();
+      setPendingInitialMessage({ text, context });
+      props.setInputValue('');
+    } finally {
+      creatingThreadRef.current = false;
+      setIsCreating(false);
+    }
+  };
+
+  if (!props.activeThreadId) {
+    return <EmptyThreadChatView {...props} isCreating={isCreating} onSubmit={() => void createAndSend()} />;
+  }
+
+  return <ActiveThreadChatView key={props.activeThreadId} {...props} initialRequest={pendingInitialMessage ?? undefined} onInitialMessageSent={() => setPendingInitialMessage(null)} />;
 }

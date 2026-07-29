@@ -9,9 +9,9 @@ import { getPluginsAgentId } from './utils/agentId';
 import { getActiveTabPageContext } from './utils/clientTools';
 import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../shared/constants';
 
-/** Main application component — orchestrates state, side-effects, and view routing (chat vs plugins). */
+/** Main application component Ã¢â‚¬â€ orchestrates state, side-effects, and view routing (chat vs plugins). */
 export default function App() {
-  // ── Tab state ──
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Tab state Ã¢â€â‚¬Ã¢â€â‚¬
   /** Active browser tabs. */
   const [tabs, setTabs]               = useState<any[]>([]);
   /** URLs the user has selected to share as context. */
@@ -26,6 +26,7 @@ export default function App() {
   const [suggestionsLoading, setSuggestionsLoading]     = useState(false);
   /** Authenticated user object, or null if signed out. */
   const [user, setUser]               = useState<any>(null);
+  const handleAuthLost = useCallback(() => setUser(null), []);
 
   /** Currently selected model ID, persisted to and restored from localStorage. */
   const [model, setModel] = useState(() => {
@@ -39,7 +40,7 @@ export default function App() {
   const [showSelected,     setShowSelected]     = useState(false);
   /** Whether the model selector dropdown is visible. */
   const [showModelPopup,   setShowModelPopup]   = useState(false);
-  /** Current view — either the chat interface or the plugins management screen. */
+  /** Current view Ã¢â‚¬â€ either the chat interface or the plugins management screen. */
   const [activeView, setActiveView] = useState<'chat' | 'plugins'>('chat');
   /** Whether the history / menu popup is visible. */
   const [showHistoryPopup, setShowHistoryPopup] = useState(false);
@@ -79,13 +80,13 @@ export default function App() {
     updateActiveThreadTitle,
     handleNewChat: _handleNewChat,
     handleDeleteThread,
-    ensureThreadEntry,
-  } = useThreads(!!user);
+    createThread,
+  } = useThreads(!!user, handleAuthLost);
 
-  /** Agent ID derived from the current user for plugin registration — key+guard avoids "" identity transitions. */
+  /** Agent ID derived from the current user for plugin registration Ã¢â‚¬â€ key+guard avoids "" identity transitions. */
   const pluginsAgentId = useMemo(() => getPluginsAgentId(user), [user?.id]);
 
-  // Subscribe to MCP updates on pluginsAgentId — key+guard avoids "" identity transitions
+  // Subscribe to MCP updates on pluginsAgentId Ã¢â‚¬â€ key+guard avoids "" identity transitions
   /** Receive MCP state updates from the backend and map them to the available plugins list. */
   const handleMcpUpdate = useCallback((mcpState: any) => {
     console.log('[App] MCP update received:', mcpState);
@@ -262,7 +263,7 @@ export default function App() {
         if (threadForThisTab) {
           setActiveThreadId(threadForThisTab);
         } else {
-          setActiveThreadId(crypto.randomUUID());
+          setActiveThreadId(null);
           fetchSuggestionsForTab(tabUrl, tabTitle);
         }
 
@@ -340,7 +341,7 @@ export default function App() {
     return () => { document.removeEventListener('mousedown', handleClickOutside); };
   }, [showPopup, showSelected, showModelPopup, showHistoryPopup]);
 
-  // ── Handlers ──
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Handlers Ã¢â€â‚¬Ã¢â€â‚¬
   /** Initiate Google sign-in flow via the background script. */
   const handleSignIn  = () => {
     setSigningIn(true);
@@ -398,13 +399,12 @@ export default function App() {
       )}
       <Suspense fallback={<ChatSkeleton />}>
       <ChatView
-        key={activeThreadId}
         activeThreadId={activeThreadId}
         activeThreadTitle={activeThreadTitle}
         updateActiveThreadTitle={updateActiveThreadTitle}
         handleNewChat={handleNewChat}
         handleDeleteThread={handleDeleteThread}
-        ensureThreadEntry={ensureThreadEntry}
+        createThread={createThread}
         threads={threads}
         setActiveThreadId={setActiveThreadId}
         model={model}
@@ -447,4 +447,3 @@ export default function App() {
     </>
   );
 }
-

@@ -49,8 +49,8 @@ export function prepareModelMessages(
   const screenshot = optionsBody?.screenshot as string | undefined;
 
   // Inject auto-captured page context into the last user message
-  if (pageContext) {
-    const contextText = `<page_context url="${pageContext.url}" title="${pageContext.title}">\n${pageContext.text}\n</page_context>`;
+  if (pageContext || (screenshot && supportsVision(modelName))) {
+    const contextText = pageContext ? `<page_context url="${pageContext.url}" title="${pageContext.title}">\n${pageContext.text}\n</page_context>` : '';
     for (let i = modelMessages.length - 1; i >= 0; i--) {
       const msg = modelMessages[i];
       if (msg.role !== 'user') continue;

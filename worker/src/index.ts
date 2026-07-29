@@ -36,7 +36,7 @@ app.use(
   '/*',
   cors({
     origin: (origin) => (origin && ALLOWED_ORIGINS.has(origin) ? origin : null),
-    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   })
 );
@@ -60,7 +60,7 @@ app.get('/api/health', (c) => c.json({ status: 'ok' }));
 function corsify(response: Response, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', getCorsOrigin(requestOrigin));
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   return new Response(response.body, {
     status: response.status,
@@ -81,7 +81,7 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': getCorsOrigin(origin),
-          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       });
