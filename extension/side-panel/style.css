@@ -603,6 +603,10 @@ body {
   background-color: var(--bg-hover);
 }
 
+.chat-plugins-selector {
+  position: relative;
+}
+
 /* Plugins selector dropdown popup */
 .plugins-selector-popup {
   position: absolute;

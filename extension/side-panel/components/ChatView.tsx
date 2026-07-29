@@ -68,10 +68,6 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
     onTogglePlugin,
   } = props;
 
-  /** Whether the plugins selector popup is visible. */
-  const [showPluginsPopup, setShowPluginsPopup] = useState(false);
-  /** Ref for the plugins selector popup (used for outside-click detection). */
-  const pluginsPopupRef = useRef<HTMLDivElement>(null);
 
   /** Stringified key of enabled plugins to prevent array reference instability. */
   const enabledPluginsString = useMemo(() => {
@@ -87,19 +83,6 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
     return enabledPluginsString ? enabledPluginsString.split(',') : [];
   }, [enabledPluginsString]);
 
-  /** Close the plugins popup when clicking outside it or its trigger button. */
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showPluginsPopup && pluginsPopupRef.current && !pluginsPopupRef.current.contains(event.target as Node)) {
-        const triggerBtn = document.querySelector('.chat-plugins-btn');
-        if (!triggerBtn?.contains(event.target as Node)) {
-          setShowPluginsPopup(false);
-        }
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showPluginsPopup]);
 
   /** Memoized agent configuration object ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ensures useAgent returns a stable connection instance across renders. */
   const agentOptions = useMemo(() => ({

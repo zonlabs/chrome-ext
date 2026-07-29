@@ -63,12 +63,21 @@ async function uploadScreenshot(dataUrl: string): Promise<string> {
   return url;
 }
 
-/** Capture a screenshot of the visible browser tab. Returns a base64 data URL or null on failure. */
+function isExpectedScreenshotPermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("'activeTab' permission is not in effect")
+    || message.includes('Missing host permission')
+    || message.includes('Cannot capture a page with URL');
+}
+
+/** Capture a screenshot of the visible browser tab. Returns null when Chrome has not granted tab access. */
 export async function captureScreenshot(): Promise<string | null> {
   try {
     return await chrome.tabs.captureVisibleTab({ format: 'jpeg', quality: 80 });
-  } catch (e) {
-    console.error('[captureScreenshot] Error:', e);
+  } catch (error) {
+    if (!isExpectedScreenshotPermissionError(error)) {
+      console.error('[captureScreenshot] Error:', error);
+    }
     return null;
   }
 }

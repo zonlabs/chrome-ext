@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 const threadsHook = readFileSync(new URL('./utils/useThreads.ts', import.meta.url), 'utf8');
 const app = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8');
 const chatView = readFileSync(new URL('./components/ChatView.tsx', import.meta.url), 'utf8');
+const chatPluginBar = readFileSync(new URL('./components/ChatPluginBar.tsx', import.meta.url), 'utf8');
+const clientTools = readFileSync(new URL('./utils/clientTools.ts', import.meta.url), 'utf8');
 
 test('the extension never generates a chat thread id', () => {
   assert.doesNotMatch(threadsHook, /crypto\.randomUUID\s*\(/);
@@ -39,8 +41,27 @@ test('the chat shell is not remounted when its server thread id changes', () => 
 });
 test('the empty thread shell retains navigation chrome and captures first-message context', () => {
   assert.match(chatView, /function EmptyThreadChatView/);
-  assert.match(chatView, /<HistoryPopup/);
+  assert.match(chatView, /<ChatHeader/);
   assert.match(chatView, /getActiveTabPageContext\(\)/);
   assert.match(chatView, /captureScreenshot\(\)/);
   assert.match(chatView, /pendingContextRef\.current = initialRequest\.context/);
+});
+test('expected screenshot permission failures are handled as unavailable context', () => {
+  assert.match(clientTools, /isExpectedScreenshotPermissionError/);
+  assert.match(clientTools, /if \(!isExpectedScreenshotPermissionError\(error\)\)/);
+  assert.match(clientTools, /return null/);
+});
+
+test('plugin chips remain visible while an enabled plugin reconnects', () => {
+  assert.match(chatPluginBar, /availablePlugins\.filter\(plugin => !disabledPlugins\.includes\(plugin\.id\)\)/);
+  assert.doesNotMatch(chatPluginBar, /const enabled = [^\n]*plugin\.state === 'ready'/);
+  assert.match(chatView, /p\.state === 'ready'/);
+  assert.doesNotMatch(chatView, /showPluginsPopup|pluginsPopupRef/);
+});
+
+test('plugin favicon failures render one shared initial fallback', () => {
+  assert.match(chatPluginBar, /function PluginIcon/);
+  assert.match(chatPluginBar, /onError=\{\(\) => setFailed\(true\)\}/);
+  assert.match(chatPluginBar, /plugin\.name\.trim\(\)\.charAt\(0\)\.toUpperCase\(\)/);
+  assert.match(chatPluginBar, /fallbackClassName="plugins-selector-fallback-icon"/);
 });
