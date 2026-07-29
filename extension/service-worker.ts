@@ -1,4 +1,4 @@
-import { WORKER_URL } from './shared/constants';
+import { GOOGLE_CLIENT_ID, WORKER_URL } from './shared/constants';
 
 // Track active tab changes and notify runtime
 chrome.tabs.onActivated.addListener((activeInfo) => {
@@ -65,41 +65,69 @@ chrome.runtime.onMessage.addListener((
 
 async function handleSignIn(): Promise<{ user: any } | { error: string }> {
   try {
-    const { token } = await chrome.identity.getAuthToken({ interactive: true });
-    if (!token) return { error: 'Sign-in failed' };
-    const res = await fetch(`${WORKER_URL}/api/auth/google`, {
+    const redirectUri = chrome.identity.getRedirectURL('google');
+    const state = crypto.randomUUID();
+    const nonce = crypto.randomUUID();
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.search = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      response_type: 'id_token',
+      redirect_uri: redirectUri,
+      scope: 'openid email profile',
+      nonce,
+      state,
+    }).toString();
+
+    const redirectUrl = await chrome.identity.launchWebAuthFlow({
+      url: googleAuthUrl.toString(),
+      interactive: true,
+    });
+    if (!redirectUrl) return { error: 'Google sign-in failed' };
+
+    const fragment = new URL(redirectUrl).hash.slice(1);
+    const tokenParams = new URLSearchParams(fragment);
+    if (tokenParams.get('state') !== state) return { error: 'Google sign-in state mismatch' };
+
+    const idToken = tokenParams.get('id_token');
+    if (!idToken) return { error: 'Google did not return an ID token' };
+
+    const res = await fetch(`${WORKER_URL}/api/auth/sign-in/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({
+        provider: 'google',
+        idToken: { token: idToken, nonce },
+      }),
     });
 
-    if (!res.ok) {
-      await chrome.identity.removeCachedAuthToken({ token });
-      const err = await res.json();
-      return { error: err.error || 'Sign-in failed' };
-    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: data.error?.message || data.error || 'Sign-in failed' };
 
-    const data = await res.json();
-    await chrome.storage.local.set({ jwt: data.token, user: data.user });
-    return { user: data.user };
-  } catch (err) {
+    const sessionToken = res.headers.get('set-auth-token') || data.token;
+    if (!sessionToken || !data.user) return { error: 'Better Auth returned an incomplete session' };
+
+    const user = {
+      ...data.user,
+      picture: data.user.picture || data.user.image || null,
+    };
+    await chrome.storage.local.set({ jwt: sessionToken, user });
+    return { user };
+  } catch {
     return { error: 'Sign-in cancelled or failed' };
   }
 }
 
 async function handleSignOut(): Promise<{ success: boolean }> {
-  // JWT is stateless — just discard it locally. No server call needed.
-  await chrome.storage.local.remove(['jwt', 'user']);
-  // Revoke the Chrome identity token
-  const authResult = await new Promise<{ token?: string }>((resolve) => {
-    chrome.identity.getAuthToken({ interactive: false }, (t) => resolve({ token: t.token }));
-  });
-  if (authResult.token) {
-    await chrome.identity.removeCachedAuthToken({ token: authResult.token });
+  const { jwt } = await chrome.storage.local.get('jwt');
+  if (jwt) {
+    await fetch(`${WORKER_URL}/api/auth/sign-out`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jwt}` },
+    }).catch(() => {});
   }
+  await chrome.storage.local.remove(['jwt', 'user']);
   return { success: true };
 }
-
 async function checkAuthStatus(): Promise<{ user: any }> {
   const { user } = await chrome.storage.local.get('user');
   return { user: user || null };

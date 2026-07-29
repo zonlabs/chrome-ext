@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { routeAgentRequest } from 'agents';
+import { getAuthSuccessHtml } from './templates/authSuccess';
 
 import { ChatAgent } from './agent';
 import { McpAgent } from './agent/mcp-agent';
 import { auth } from './utils/auth';
-import authRoute from './routes/auth';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
 import faviconRoute from './routes/favicon';
@@ -38,10 +38,13 @@ app.use(
     origin: (origin) => (origin && ALLOWED_ORIGINS.has(origin) ? origin : null),
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['set-auth-token'],
   })
 );
 
-app.route('/api', authRoute);
+app.get('/api/auth/callback', (c) => {
+  return c.html(getAuthSuccessHtml());
+});
 
 app.on(['POST', 'GET'], '/api/auth/*', (c) => {
   return auth(c.env).handler(c.req.raw);

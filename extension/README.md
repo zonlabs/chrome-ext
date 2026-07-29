@@ -77,4 +77,4 @@ cd extension && npm run watch
 
 ## Authentication
 
-Google OAuth via `chrome.identity.getAuthToken`. The extension requests `openid`, `email`, and `profile` scopes. The user ID is used as the DO namespace for isolating MCP state.
+Google ID-token sign-in via `chrome.identity.launchWebAuthFlow`. The extension requests `openid`, `email`, and `profile` scopes, then sends the ID token to Better Auth. The user ID is used as the DO namespace for isolating MCP state.

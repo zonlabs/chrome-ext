@@ -1,30 +1,72 @@
 import { betterAuth } from "better-auth";
-import { bearer } from "better-auth/plugins";
+import { admin, bearer } from "better-auth/plugins";
 import { dash } from "@better-auth/infra";
 
-export const auth = (env: Env) => betterAuth({
-  database: env.DB,
-  baseURL: env.BETTER_AUTH_URL,
-  plugins: [bearer(), dash()],
-  secret: env.BETTER_AUTH_SECRET,
-  advanced: {
-    ipAddress: {
-      // Cloudflare sets this header to the original client IP.
-      // Avoid falling back to X-Forwarded-For, whose leftmost value can be spoofed.
-      ipAddressHeaders: ['cf-connecting-ip'],
-    },
-  },
-  trustedOrigins: ["https://dash.better-auth.com"],
-  user: {
-    modelName: "users",
-    fields: {
-      image: "picture",
-    },
-    additionalFields: {
-      plan: {
-        type: "string",
-        defaultValue: "free",
+type GoogleAuthEnv = Env & {
+  ADMIN_USER_IDS?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+};
+
+export const auth = (env: Env) => {
+  const authEnv = env as GoogleAuthEnv;
+  const googleClientId = authEnv.GOOGLE_CLIENT_ID?.trim();
+  const googleClientSecret = authEnv.GOOGLE_CLIENT_SECRET?.trim();
+  const adminUserIds = authEnv.ADMIN_USER_IDS
+    ?.split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  return betterAuth({
+    database: env.DB,
+    baseURL: env.BETTER_AUTH_URL,
+    plugins: [
+      bearer(),
+      admin({ adminUserIds }),
+      dash(),
+    ],
+    secret: env.BETTER_AUTH_SECRET,
+    socialProviders:
+      googleClientId && googleClientSecret
+        ? {
+            google: {
+              clientId: googleClientId,
+              clientSecret: googleClientSecret,
+            },
+          }
+        : undefined,
+    rateLimit: {
+      enabled: true,
+      storage: 'database',
+      window: 60,
+      max: 100,
+      customRules: {
+        // Google sign-in is the highest-cost unauthenticated operation.
+        '/sign-in/social': {
+          window: 60,
+          max: 5,
+        },
       },
     },
-  },
-});
+    advanced: {
+      ipAddress: {
+        // Cloudflare sets this header to the original client IP.
+        // Avoid falling back to X-Forwarded-For, whose leftmost value can be spoofed.
+        ipAddressHeaders: ['cf-connecting-ip'],
+      },
+    },
+    trustedOrigins: ["https://dash.better-auth.com"],
+    user: {
+      modelName: "users",
+      fields: {
+        image: "picture",
+      },
+      additionalFields: {
+        plan: {
+          type: "string",
+          defaultValue: "free",
+        },
+      },
+    },
+  });
+};

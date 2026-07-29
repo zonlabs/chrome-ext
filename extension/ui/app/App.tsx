@@ -293,7 +293,7 @@ export default function App() {
       refreshActiveTab();
     };
 
-    const handleTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+    const handleTabUpdated = (_tabId: number, changeInfo: { url?: string }) => {
       if (changeInfo.url && changeInfo.url !== prevActiveTabUrlRef.current) {
         refreshActiveTab();
       }
