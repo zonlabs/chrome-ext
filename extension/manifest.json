@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArgHv+2aybIdBdAUnJMdAUP8sDMfqlXgaACcbawXkO+BeUMSYmCAFQYF7Bt59rY2s2jNKff7fkjZL+GLrc750F6peuVj0HY++TbOQettHQnyHt5MtE8bTdftU8KifDHkJAQqAilYGodN5Qok4wa5RZldXiyFx5XSW+aNIum+ww6SQt/EdtHoZ4txXBSUFs+/twKPNDeTVJzhrrzHaLITXq9s18HwZNTLLwl7746zLhZYYP8H41n5T1FnjS12FW2fTcnmFpSRyVs4KxFRF4b5NjP7HUs5Letbc0EFH6iMgPfy1qiQmA7EB0DVjLxGwpAGj/6rWw/RREwuEtzlFlyaWfwIDAQAB",
   "name": "Obot",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Your AI assistant",
   "permissions": [
     "storage",
