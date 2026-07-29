@@ -89,7 +89,6 @@ export default function App() {
   // Subscribe to MCP updates on pluginsAgentId Ã¢â‚¬â€ key+guard avoids "" identity transitions
   /** Receive MCP state updates from the backend and map them to the available plugins list. */
   const handleMcpUpdate = useCallback((mcpState: any) => {
-    console.log('[App] MCP update received:', mcpState);
     if (mcpState?.servers) {
       const list = Object.entries(mcpState.servers).map(([id, s]: [string, any]) => ({
         id,

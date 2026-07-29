@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const threadsHook = readFileSync(new URL('./hooks/useThreads.ts', import.meta.url), 'utf8');
-const app = readFileSync(new URL('../../app/App.tsx', import.meta.url), 'utf8');
-const chatView = readFileSync(new URL('./components/ChatView.tsx', import.meta.url), 'utf8');
-const chatPluginBar = readFileSync(new URL('../plugins/components/ChatPluginBar.tsx', import.meta.url), 'utf8');
-const clientTools = readFileSync(new URL('./lib/clientTools.ts', import.meta.url), 'utf8');
+const threadsHook = readFileSync(new URL('../../../ui/features/chat/hooks/useThreads.ts', import.meta.url), 'utf8');
+const app = readFileSync(new URL('../../../ui/app/App.tsx', import.meta.url), 'utf8');
+const chatView = readFileSync(new URL('../../../ui/features/chat/components/ChatView.tsx', import.meta.url), 'utf8');
+const chatPluginBar = readFileSync(new URL('../../../ui/features/plugins/components/ChatPluginBar.tsx', import.meta.url), 'utf8');
+const clientTools = readFileSync(new URL('../../../ui/features/chat/lib/clientTools.ts', import.meta.url), 'utf8');
 
 test('the extension never generates a chat thread id', () => {
   assert.doesNotMatch(threadsHook, /crypto\.randomUUID\s*\(/);
@@ -15,7 +15,18 @@ test('the extension never generates a chat thread id', () => {
 
 test('the empty chat view does not construct an agent connection', () => {
   assert.match(chatView, /if \(!props\.activeThreadId\)/);
-  assert.match(chatView, /syncMessagesToServer:\s*false/);
+});
+
+test('message replacement actions sync their retained transcript to durable storage', () => {
+  assert.doesNotMatch(chatView, /syncMessagesToServer:\s*false/);
+  assert.match(
+    chatView,
+    /handleEditMessage[\s\S]*setMessages\(messages\.slice\(0, messageIndex\)\);[\s\S]*setPendingEdit\(\{ text: newText \}\)/,
+  );
+  assert.match(
+    chatView,
+    /handleRegenerateMessage[\s\S]*setMessages\(messages\.slice\(0, userMessageIndex\)\);[\s\S]*setPendingEdit\(\{ text: userText \}\)/,
+  );
 });
 
 
@@ -46,6 +57,32 @@ test('the empty thread shell retains navigation chrome and captures first-messag
   assert.match(chatView, /captureScreenshot\(\)/);
   assert.match(chatView, /pendingContextRef\.current = initialRequest\.context/);
 });
+test('the first message handoff is consumed before it mutates the external chat store', () => {
+  assert.match(chatView, /const consumedInitialRequestRef = useRef<InitialMessageRequest \| null>\(null\);/);
+  assert.match(
+    chatView,
+    /consumedInitialRequestRef\.current = initialRequest;[\s\S]*onInitialMessageSent\?\.\(\);[\s\S]*sendMessage\(\{ text: initialRequest\.text \}\);/,
+  );
+  assert.match(
+    chatView,
+    /const handleInitialMessageSent = useCallback\(\(\) => setPendingInitialMessage\(null\), \[\]\);/,
+  );
+  assert.doesNotMatch(chatView, /onInitialMessageSent=\{\(\) => setPendingInitialMessage\(null\)\}/);
+});
+
+test('message replacement actions never call React state setters inside chat-store updaters', () => {
+  assert.doesNotMatch(
+    chatView,
+    /setMessages\(prev => \{[\s\S]*?setPendingEdit\([\s\S]*?\}\);/,
+  );
+});
+test('server-authoritative chat disables replay feedback and throttles live store notifications', () => {
+  assert.match(chatView, /resume:\s*false/);
+  assert.match(chatView, /experimental_throttle:\s*50/);
+  assert.doesNotMatch(chatView, /new Proxy\(/);
+  assert.match(chatView, /const agent = useAgent\(agentOptions\);/);
+});
+
 test('expected screenshot permission failures are handled as unavailable context', () => {
   assert.match(clientTools, /isExpectedScreenshotPermissionError/);
   assert.match(clientTools, /if \(!isExpectedScreenshotPermissionError\(error\)\)/);

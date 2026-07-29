@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 const extensionRoot = new URL('../../', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('../../manifest.json', import.meta.url), 'utf8'));
 const extensionPackage = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-const modelSelector = readFileSync(new URL('../features/chat/components/ModelSelector.tsx', import.meta.url), 'utf8');
-const chatInput = readFileSync(new URL('../features/chat/components/ChatInput.tsx', import.meta.url), 'utf8');
+const modelSelector = readFileSync(new URL('../../ui/features/chat/components/ModelSelector.tsx', import.meta.url), 'utf8');
+const chatInput = readFileSync(new URL('../../ui/features/chat/components/ChatInput.tsx', import.meta.url), 'utf8');
 const rootReadme = readFileSync(new URL('../../../README.md', import.meta.url), 'utf8');
 const releaseWorkflow = readFileSync(new URL('../../../.github/workflows/release-extension.yml', import.meta.url), 'utf8');
 
@@ -25,7 +25,7 @@ test('all extension icons live under the UI assets directory', () => {
     'models/zai.svg',
   ];
   for (const asset of expectedAssets) {
-    assert.equal(existsSync(new URL(`../assets/icons/${asset}`, import.meta.url)), true, asset);
+    assert.equal(existsSync(new URL(`../../ui/assets/icons/${asset}`, import.meta.url)), true, asset);
   }
   assert.equal(existsSync(new URL('icons', extensionRoot)), false);
   assert.deepEqual(manifest.action.default_icon, {
@@ -45,12 +45,13 @@ test('all extension icons live under the UI assets directory', () => {
 });
 
 test('shared UI components live directly under the shared directory', () => {
-  assert.equal(existsSync(new URL('../shared/Favicon.tsx', import.meta.url)), true);
-  assert.equal(existsSync(new URL('../shared/components', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../../ui/shared/Favicon.tsx', import.meta.url)), true);
+  assert.equal(existsSync(new URL('../../ui/shared/components', import.meta.url)), false);
   assert.match(chatInput, /shared\/Favicon/);
   assert.doesNotMatch(chatInput, /shared\/components/);
 });
 
 test('the package test script includes the structure contract', () => {
-  assert.match(extensionPackage.scripts.test, /ui\/app\/Structure\.test\.mjs/);
+  assert.equal(extensionPackage.scripts.test, 'node --test tests/**/*.test.mjs');
 });
+

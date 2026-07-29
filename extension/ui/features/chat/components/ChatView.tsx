@@ -92,25 +92,8 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
     host: WORKER_URL,
   }), [pluginsAgentId, activeThreadId]);
 
-  /** Raw agent connection for the current active thread. */
-  const rawAgent = useAgent(agentOptions);
-
-  /** Stable ref holding the latest agent instance for the Proxy wrapper. */
-  const agentRef = useRef(rawAgent);
-  agentRef.current = rawAgent;
-
-  /** Stable agent proxy wrapper that maintains referential identity across socket reconnects for the same activeThreadId. */
-  const agent = useMemo(() => {
-    return new Proxy({} as typeof rawAgent, {
-      get(_target, prop) {
-        const value = (agentRef.current as any)[prop];
-        if (typeof value === 'function') {
-          return value.bind(agentRef.current);
-        }
-        return value;
-      }
-    });
-  }, [activeThreadId]);
+  /** Agent connection for the current active thread. */
+  const agent = useAgent(agentOptions);
 
   /** Stable ref wrapping getSelectedTabs so client tools always read the latest tabs without re-creating. */
   const getSelectedTabsRef = useRef<() => { url: string; title: string }[]>(() => []);
@@ -155,6 +138,9 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
   /** Holds pending page context + screenshot for the next sendMessage call. Cleared by prepareSendMessagesRequest. */
   const pendingContextRef = useRef<{ pageContext: { url: string; title: string; text: string } | null; screenshot: string | null } | null>(null);
 
+  /** Prevents React external-store notifications from re-entering the one-time first-message handoff. */
+  const consumedInitialRequestRef = useRef<InitialMessageRequest | null>(null);
+
   /** Attach pending screen context to the request body so it goes server-side without appearing in the UI. */
   const prepareSendMessagesRequest = useCallback(async () => {
     const ctx = pendingContextRef.current;
@@ -172,20 +158,23 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
   }), [model, pluginsAgentId, user?.id, enabledPluginsString]);
 
   /** Chat state: message list, send/stop helpers, tool approval, and streaming status from the agent. */
-  const { messages, sendMessage, addToolApprovalResponse, status, clearHistory, stop, setMessages, error: chatError } = useAgentChat({
+  const { messages, sendMessage, addToolApprovalResponse, status, stop, setMessages, error: chatError } = useAgentChat({
     agent,
     body: chatBody,
     onToolCall: handleToolCall,
     tools: clientTools,
     prepareSendMessagesRequest,
-  syncMessagesToServer: false,
+    resume: false,
+    experimental_throttle: 50,
   });
 
   useEffect(() => {
-    if (!initialRequest) return;
+    if (!initialRequest || consumedInitialRequestRef.current === initialRequest) return;
+
+    consumedInitialRequestRef.current = initialRequest;
     pendingContextRef.current = initialRequest.context;
-    sendMessage({ text: initialRequest.text });
     onInitialMessageSent?.();
+    sendMessage({ text: initialRequest.text });
   }, [initialRequest, onInitialMessageSent, sendMessage]);
 
   /** Dismissible error toast message, or null when hidden. */
@@ -359,30 +348,28 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
 
   /** Truncate messages up to the edited one and schedule the replacement text to send. */
   const handleEditMessage = useCallback((messageId: string, newText: string) => {
-    setMessages(prev => {
-      const idx = prev.findIndex(m => m.id === messageId);
-      if (idx === -1) return prev;
-      return prev.slice(0, idx);
-    });
+    const messageIndex = messages.findIndex(message => message.id === messageId);
+    if (messageIndex === -1) return;
+
+    setMessages(messages.slice(0, messageIndex));
     setPendingEdit({ text: newText });
-  }, [setMessages]);
+  }, [messages, setMessages]);
 
   /** Regenerate the last assistant response by re-sending the preceding user message. */
   const handleRegenerateMessage = useCallback((messageId: string) => {
-    setMessages(prev => {
-      const idx = prev.findIndex(m => m.id === messageId);
-      if (idx === -1) return prev;
-      const userMsgIdx = idx - 1;
-      if (userMsgIdx < 0) return prev;
-      const userMsg = prev[userMsgIdx];
-      if (userMsg.role !== 'user') return prev;
-      const userText = ((userMsg.parts.find((p: any) => p.type === 'text') as { text?: string } | undefined)?.text) || '';
-      if (!userText) return prev;
-      setPendingEdit({ text: userText });
-      return prev.slice(0, userMsgIdx);
-    });
-  }, [setMessages]);
+    const assistantIndex = messages.findIndex(message => message.id === messageId);
+    const userMessageIndex = assistantIndex - 1;
+    if (assistantIndex === -1 || userMessageIndex < 0) return;
 
+    const userMessage = messages[userMessageIndex];
+    if (userMessage.role !== 'user') return;
+
+    const userText = ((userMessage.parts.find((part: any) => part.type === 'text') as { text?: string } | undefined)?.text) || '';
+    if (!userText) return;
+
+    setMessages(messages.slice(0, userMessageIndex));
+    setPendingEdit({ text: userText });
+  }, [messages, setMessages]);
   /** Scroll the message list to the bottom. */
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -496,6 +483,7 @@ export function ChatView(props: ChatViewProps) {
   const [pendingInitialMessage, setPendingInitialMessage] = useState<InitialMessageRequest | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const creatingThreadRef = useRef(false);
+  const handleInitialMessageSent = useCallback(() => setPendingInitialMessage(null), []);
 
   const createAndSend = async () => {
     const text = props.inputValue.trim();
@@ -528,5 +516,5 @@ export function ChatView(props: ChatViewProps) {
     return <EmptyThreadChatView {...props} isCreating={isCreating} onSubmit={() => void createAndSend()} />;
   }
 
-  return <ActiveThreadChatView key={props.activeThreadId} {...props} initialRequest={pendingInitialMessage ?? undefined} onInitialMessageSent={() => setPendingInitialMessage(null)} />;
+  return <ActiveThreadChatView key={props.activeThreadId} {...props} initialRequest={pendingInitialMessage ?? undefined} onInitialMessageSent={handleInitialMessageSent} />;
 }
