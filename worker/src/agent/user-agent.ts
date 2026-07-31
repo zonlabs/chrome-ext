@@ -1,14 +1,10 @@
 import { Agent, callable } from "agents";
 
 /**
- * Parent Durable Object managing user-level MCP plugin lifecycle,
- * OAuth callback routing, and sub-agent access gates for thread ChatAgents.
- *
- * Extends {@link Agent} directly so the Cloudflare Agents framework derives
- * the agent route prefix as `mcp-agent`, enabling OAuth callback URLs at
- * `/agents/mcp-agent/{name}/callback` to resolve natively.
+ * UserAgent is the top-level Durable Object managing per-user state,
+ * MCP plugin connections, user preferences, and sub-agent authorization gates.
  */
-export class McpAgent extends Agent<Env> {
+export class UserAgent extends Agent<Env> {
   /**
    * Initializes the Durable Object on startup and configures the OAuth success redirect.
    * Called on every DO wake — ensures `handleMcpOAuthCallback` can complete the code
@@ -18,6 +14,11 @@ export class McpAgent extends Agent<Env> {
     this.mcp.configureOAuthCallback({
       successRedirect: '/api/auth/callback',
     });
+  }
+
+  /** User ID accessed from framework props or instance name (user-<userId>). */
+  get userId(): string {
+    return (this as any).props?.userId || (this.name.startsWith('user-') ? this.name.slice(5) : this.name);
   }
 
   /**
@@ -32,7 +33,7 @@ export class McpAgent extends Agent<Env> {
     request: Request,
     child: { className: string; name: string }
   ): Promise<void | Response | Request> {
-    console.log(`[McpAgent:${this.name}] Authorizing sub-agent: className=${child.className}, name=${child.name}`);
+    console.log(`[UserAgent:${this.name}] Authorizing sub-agent: className=${child.className}, name=${child.name}`);
     return request;
   }
 
@@ -43,7 +44,7 @@ export class McpAgent extends Agent<Env> {
    */
   @callable()
   listPlugins() {
-    return this.getMcpServers();
+    return (this as any).getMcpServers();
   }
 
   /**
@@ -62,7 +63,7 @@ export class McpAgent extends Agent<Env> {
     error?: string;
   }> {
     try {
-      const result = await this.addMcpServer(name, url);
+      const result = await (this as any).addMcpServer(name, url);
       if (result.state === 'authenticating') {
         return { success: true, requiresAuth: true, authUrl: result.authUrl, serverId: result.id };
       }
@@ -81,7 +82,7 @@ export class McpAgent extends Agent<Env> {
   @callable()
   async removePlugin(serverId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.removeMcpServer(serverId);
+      await (this as any).removeMcpServer(serverId);
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -96,14 +97,15 @@ export class McpAgent extends Agent<Env> {
    * @param serverFilter - Optional array of server IDs to filter tools.
    * @returns Array of raw tool descriptor objects.
    */
+  @callable()
   async listMcpToolDescriptors(timeoutMs = 10_000, serverFilter?: string[]): Promise<unknown[]> {
-    const servers = this.getMcpServers().servers;
+    const servers = (this as any).getMcpServers().servers;
     if (Object.keys(servers).length === 0) {
       return [];
     }
     await this.mcp.waitForConnections({ timeout: timeoutMs });
     const filter = serverFilter && serverFilter.length > 0 ? { serverId: serverFilter } : undefined;
-    return this.mcp.listTools(filter);
+    return (this.mcp as any).listTools(filter);
   }
 
   /**
@@ -115,11 +117,12 @@ export class McpAgent extends Agent<Env> {
    * @param args - Object arguments passed to the tool.
    * @returns Tool execution result.
    */
+  @callable()
   async callMcpTool(
     serverId: string,
     name: string,
     args: Record<string, unknown>
   ): Promise<unknown> {
-    return await this.mcp.callTool({ arguments: args, name, serverId });
+    return await (this.mcp as any).callTool({ arguments: args, name, serverId });
   }
 }

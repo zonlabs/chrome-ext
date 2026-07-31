@@ -8,7 +8,7 @@ export async function generateChatResponse(
   productContext: string
 ): Promise<string> {
   const now = new Date();
-  const systemPrompt = `You are Obot, a helpful AI assistant. Answer user queries, compare items, and help them make decisions. Use the provided context data to give specific, accurate answers. Be concise and direct.
+  const systemPrompt = `You are a helpful AI assistant. Answer user queries, compare items, and help them make decisions. Use the provided context data to give specific, accurate answers. Be concise and direct.
 Current Date and Time: ${now.toUTCString()} (${now.toISOString()}).
 
 Current context:\n${productContext}`;

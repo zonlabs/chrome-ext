@@ -2,26 +2,35 @@ import { AIChatAgent, OnChatMessageOptions } from "@cloudflare/ai-chat";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage } from "ai";
 
-import { DEFAULT_MODEL, buildSystemPrompt } from "./agent/models";
-import { extractFirstUserMessage, prepareModelMessages, generateChatTitle } from "./agent/messages";
-import { resolveAgentTools } from "./agent/tools";
+import { DEFAULT_MODEL, buildSystemPrompt } from "./models";
+import { extractFirstUserMessage, prepareModelMessages, generateChatTitle } from "./messages";
+import { resolveAgentTools } from "./tools";
 
 /**
  * Chat thread Durable Object handling conversational AI state,
  * streaming LLM completions, message context enrichment, and persistence.
  *
  * Extends {@link AIChatAgent} directly — MCP plugin management lives in
- * the parent {@link McpAgent} DO; ChatAgent only handles chat.
+ * the parent {@link UserAgent} DO; ChatAgent only handles chat.
  */
 export class ChatAgent extends AIChatAgent<Env> {
   /**
-   * MCP connections are managed in the parent {@link McpAgent} DO via {@link McpProxy}.
+   * MCP connections are managed in the parent {@link UserAgent} DO via {@link McpProxy}.
    * Disable the AIChatAgent's automatic MCP wait (default: 10s) on this DO
    * since it has none — otherwise every message blocks for the full timeout.
    */
   override waitForMcpConnections = false;
 
-  private _userId: string | null = null;
+  /** User ID derived from the parent UserAgent hierarchy. */
+  private get userId(): string | null {
+    const parentName = this.parentPath?.at(0)?.name;
+    return parentName?.startsWith('user-') ? parentName.slice(5) : ((this as any).props?.userId || null);
+  }
+
+  /** Parent UserAgent instance name for MCP tool proxying. */
+  private get pluginsAgentId(): string | undefined {
+    return this.parentPath?.at(0)?.name;
+  }
 
   /**
    * Handles incoming HTTP requests to this DO.
@@ -44,15 +53,13 @@ export class ChatAgent extends AIChatAgent<Env> {
     _onFinish: GenerateTextOnEndCallback,
     _options?: OnChatMessageOptions
   ) {
-    this._userId = (_options?.body?.userId as string) || null;
-
     const workersai = createWorkersAI({ binding: this.env.AI });
     const modelName = (_options?.body?.model as string) || DEFAULT_MODEL;
 
     const userMessage = extractFirstUserMessage(this.messages);
 
     try {
-      const tools = await resolveAgentTools(_options, this.env);
+      const tools = await resolveAgentTools(_options, this.env, this.pluginsAgentId);
       const rawModelMessages = await convertToModelMessages(this.messages);
       const modelMessages = prepareModelMessages(rawModelMessages, _options?.body as Record<string, unknown>, modelName);
 
@@ -93,7 +100,7 @@ export class ChatAgent extends AIChatAgent<Env> {
     excludeBroadcastIds?: string[],
     options?: { _deleteStaleRows?: boolean }
   ): Promise<void> {
-    if (!this._userId) {
+    if (!this.userId) {
       await super.persistMessages(messages, excludeBroadcastIds, options);
       this.sql`DELETE FROM cf_ai_chat_agent_messages`;
       (this as any)._persistedMessageCache?.clear();

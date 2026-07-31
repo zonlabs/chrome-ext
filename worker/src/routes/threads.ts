@@ -1,15 +1,14 @@
 import { Hono } from 'hono';
-import { auth } from '../utils/auth';
+import { rateLimitMiddleware } from '../utils/rate-limit';
+import { requireAuth, type AuthEnv } from '../utils/auth';
 
 const TTL = 60 * 60 * 24 * 365;
 const kvKey = (userId: string) => `threads:${userId}`;
 interface Thread { id: string; title: string; createdAt: number; }
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<AuthEnv>();
 
-async function getUserId(c: any): Promise<string | null> {
-  const session = await auth(c.env).api.getSession({ headers: c.req.raw.headers });
-  return session?.user?.id ?? null;
-}
+app.use('/threads/*', rateLimitMiddleware({ windowMs: 60_000, max: 120 }), requireAuth);
+
 async function readThreads(c: any, userId: string): Promise<Thread[]> {
   const raw = await c.env.CACHE.get(kvKey(userId));
   if (!raw) return [];
@@ -18,14 +17,12 @@ async function readThreads(c: any, userId: string): Promise<Thread[]> {
 function validTitle(value: unknown): value is string { return typeof value === 'string' && value.trim().length > 0 && value.length <= 120; }
 
 app.get('/threads', async c => {
-  const userId = await getUserId(c);
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  const userId = c.get('userId');
   const threads = await readThreads(c, userId);
   return c.json({ threads: threads.sort((a, b) => b.createdAt - a.createdAt) });
 });
 app.post('/threads', async c => {
-  const userId = await getUserId(c);
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  const userId = c.get('userId');
   let body: Record<string, unknown>;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON' }, 400); }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return c.json({ error: 'Invalid thread payload' }, 400);
@@ -38,8 +35,7 @@ app.post('/threads', async c => {
   return c.json({ thread }, 201);
 });
 app.patch('/threads/:id', async c => {
-  const userId = await getUserId(c);
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  const userId = c.get('userId');
   let body: Record<string, unknown>;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON' }, 400); }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return c.json({ error: 'Invalid thread payload' }, 400);
@@ -51,8 +47,7 @@ app.patch('/threads/:id', async c => {
   return c.json({ thread });
 });
 app.delete('/threads/:id', async c => {
-  const userId = await getUserId(c);
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  const userId = c.get('userId');
   const id = c.req.param('id'); const threads = await readThreads(c, userId);
   if (!threads.some(thread => thread.id === id)) return c.json({ error: 'Thread not found' }, 404);
   await c.env.CACHE.put(kvKey(userId), JSON.stringify(threads.filter(thread => thread.id !== id)), { expirationTtl: TTL });

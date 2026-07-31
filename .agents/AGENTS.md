@@ -27,7 +27,7 @@
 - **Bindings**:
   - `ChatAgent`: Durable Object managing conversational AI sessions & tool invocations.
   - `CACHE`: Cloudflare KV namespace for caching session data and prompt suggestions.
-  - `DB`: Cloudflare D1 SQL database (`obot-db`).
+  - `DB`: Cloudflare D1 SQL database (`agent-db`).
   - `AI`: Cloudflare Workers AI model binding.
 - **API Routes (`/worker/src/routes`)**:
   - `/api/suggestions`: POST route accepting `url`, `title`, and `pageText` to generate 3 tailored prompt suggestions using Workers AI.

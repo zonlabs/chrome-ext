@@ -1,13 +1,33 @@
 import { Hono } from 'hono';
+import { rateLimitMiddleware } from '../utils/rate-limit';
+import { requireAuth, type AuthEnv } from '../utils/auth';
 
-const route = new Hono<{ Bindings: Env }>();
+const route = new Hono<AuthEnv>();
+
+route.use('/suggestions', rateLimitMiddleware({ windowMs: 60_000, max: 30 }), requireAuth);
 
 route.post('/suggestions', async (c) => {
-  const { url, title, pageText } = await c.req.json<{
-    url: string;
-    title: string;
-    pageText?: string;
-  }>();
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400);
+  }
+
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    Array.isArray(body) ||
+    typeof body.url !== 'string' ||
+    body.url.trim().length === 0 ||
+    typeof body.title !== 'string' ||
+    body.title.trim().length === 0 ||
+    (body.pageText !== undefined && typeof body.pageText !== 'string')
+  ) {
+    return c.json({ error: 'Invalid suggestion payload' }, 400);
+  }
+
+  const { url, title, pageText } = body;
 
   const contextBlock = [
     `Tab URL: ${url}`,

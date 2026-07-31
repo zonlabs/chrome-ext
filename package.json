@@ -9,7 +9,7 @@
     "build:worker": "cd worker && npx wrangler deploy",
     "dev:worker": "cd worker && npx wrangler dev",
     "dev:ext": "cd extension && npm run watch",
-    "migrate": "cd worker && npx wrangler d1 execute obot-db --file=migrations/001_init.sql"
+    "migrate": "cd worker && npx wrangler d1 migrations apply agent-db"
   },
   "devDependencies": {
     "@types/chrome": "^0.2.2",

@@ -1,5 +1,5 @@
 {
-  "name": "obot-api",
+  "name": "agent-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-17",
   "compatibility_flags": ["nodejs_compat"],
@@ -7,13 +7,14 @@
     "enabled": true
   },
   "vars": {
-    "BETTER_AUTH_URL": "https://api.linkos.in"
+    "BETTER_AUTH_URL": "https://api.linkos.in",
+    "GOOGLE_CLIENT_ID": "4924083673-9u1npacjm2egsp8ebsnsrd75gpn5qqlg.apps.googleusercontent.com"
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "obot-db",
-      "database_id": "bd29e8f1-d971-4d76-9504-b24a99a344d2"
+      "database_name": "agent-db",
+      "database_id": "e5430c58-37e8-496f-ab39-ec90e96dd055"
     }
   ],
   "kv_namespaces": [
@@ -28,7 +29,7 @@
   "durable_objects": {
     "bindings": [
       { "name": "ChatAgent", "class_name": "ChatAgent" },
-      { "name": "McpAgent", "class_name": "McpAgent" }
+      { "name": "UserAgent", "class_name": "UserAgent" }
     ]
   },
   "exports": {
@@ -36,7 +37,7 @@
       "type": "durable-object",
       "storage": "sqlite"
     },
-    "McpAgent": {
+    "UserAgent": {
       "type": "durable-object",
       "storage": "sqlite"
     }

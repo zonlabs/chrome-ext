@@ -28,7 +28,7 @@ index.ts (fetch handler)
 
 ### Durable Objects
 
-**`ChatAgent`** (`src/agent.ts`) — per-thread Durable Object extending `AIChatAgent`. Each chat thread is its own DO instance. Manages MCP servers directly via `this.addMcpServer()` / `this.removeMcpServer()`.
+**`ChatAgent`** (`src/agent/chat.ts`) — per-thread Durable Object extending `AIChatAgent`. Each chat thread is its own DO instance. Manages MCP servers directly via `this.addMcpServer()` / `this.removeMcpServer()`.
 
 Callable methods exposed to the Chrome extension:
 - `addPlugin(name, url)` — Connect an MCP server (returns `{ success, requiresAuth, authUrl, serverId }`)
@@ -46,20 +46,36 @@ System prompt instructs the model to use `codemode` for plugin operations.
 | Route | Method | Description |
 |---|---|---|
 | `/api/chat/:threadId` | POST | Send a message or get history |
-| `/api/auth/google` | GET | Initiate Google OAuth |
-| `/api/auth/callback` | GET | OAuth callback |
+| `/api/auth/sign-in/social` | POST | Better Auth Google sign-in |
+| `/api/auth/callback/google` | GET | Better Auth Google callback |
+| `/api/auth/admin/ban-user` | POST | Admin-only user ban |
+| `/api/auth/admin/unban-user` | POST | Admin-only user unban |
 | `/api/threads` | GET | List user threads |
 | `/api/threads` | POST | Create thread |
 | `/api/threads/:id` | DELETE | Delete thread |
 | `/api/suggestions` | GET | Prompt suggestions |
 | `/api/favicon?hostname=` | GET | Favicon proxy (cached in KV) |
-| `/` | GET | OAuth success page |
+| `/api/auth/callback` | GET | MCP OAuth success page |
 
 ## Setup
 
 ```bash
 cp .dev.vars.example .dev.vars   # Add secrets (AUTH_SECRET, etc.)
 ```
+
+Set these authentication values before deploying:
+- `GOOGLE_CLIENT_ID` — configured in `wrangler.jsonc`
+- `GOOGLE_CLIENT_SECRET` — set with `wrangler secret put GOOGLE_CLIENT_SECRET`
+
+Register the extension callback URL in Google Cloud Console: `https://llihcpikannlnjolgcmbebnoihokiffn.chromiumapp.org/google`.
+
+Apply the auth-control migration before enabling production traffic:
+
+```bash
+npm run migrate
+```
+
+Set `ADMIN_USER_IDS` to a comma-separated list of Better Auth user IDs if you want admin access without changing the role column manually.
 
 Required bindings (configured in `wrangler.jsonc`):
 - `DB` — D1 database

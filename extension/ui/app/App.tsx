@@ -9,6 +9,16 @@ import { getPluginsAgentId } from '../features/plugins/lib/agentId';
 import { getActiveTabPageContext } from '../features/chat/lib/clientTools';
 import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../../shared/constants';
 
+/** Read the stored session JWT from the background service worker for authed API calls. */
+function getAuthHeader(): Promise<{ Authorization: string } | Record<string, never>> {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'auth:snapshot' }, (response) => {
+      if (response?.jwt) resolve({ Authorization: `Bearer ${response.jwt}` });
+      else resolve({});
+    });
+  });
+}
+
 /** Main application component Ã¢â‚¬â€ orchestrates state, side-effects, and view routing (chat vs plugins). */
 export default function App() {
   // Ã¢â€â‚¬Ã¢â€â‚¬ Tab state Ã¢â€â‚¬Ã¢â€â‚¬
@@ -26,6 +36,8 @@ export default function App() {
   const [suggestionsLoading, setSuggestionsLoading]     = useState(false);
   /** Authenticated user object, or null if signed out. */
   const [user, setUser]               = useState<any>(null);
+  /** True until the stored auth session is resolved on mount (prevents a sign-in flash). */
+  const [authLoading, setAuthLoading] = useState(true);
   const handleAuthLost = useCallback(() => setUser(null), []);
 
   /** Currently selected model ID, persisted to and restored from localStorage. */
@@ -209,7 +221,10 @@ export default function App() {
 
       fetch(`${WORKER_URL}/api/suggestions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getAuthHeader()),
+        },
         body: JSON.stringify({ url: tabUrl, title: tabTitle, pageText }),
       })
         .then((r) => r.json())
@@ -278,6 +293,7 @@ export default function App() {
 
     chrome.runtime.sendMessage({ type: 'auth:status' }, (response) => {
       if (response?.user) setUser(response.user);
+      setAuthLoading(false);
     });
 
     const handleMessage = (message: any) => {
@@ -293,7 +309,7 @@ export default function App() {
       refreshActiveTab();
     };
 
-    const handleTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+    const handleTabUpdated = (_tabId: number, changeInfo: { url?: string }) => {
       if (changeInfo.url && changeInfo.url !== prevActiveTabUrlRef.current) {
         refreshActiveTab();
       }
@@ -385,6 +401,11 @@ export default function App() {
         onClose={() => setActiveView('chat')}
       />
     );
+  }
+
+  /** Wait for the stored auth session before rendering, so the sign-in screen never flashes for logged-in users. */
+  if (authLoading) {
+    return <ChatSkeleton />;
   }
 
   return (

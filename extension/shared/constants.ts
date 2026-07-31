@@ -7,6 +7,9 @@ export const WORKER_URL = __BUILD_ENV__ === 'production'
   ? 'https://api.linkos.in'
   : 'http://127.0.0.1:8787';
 
+/** Google OAuth client used by the extension ID-token flow. */
+export const GOOGLE_CLIENT_ID = '4924083673-9u1npacjm2egsp8ebsnsrd75gpn5qqlg.apps.googleusercontent.com';
+
 /** LocalStorage key for saved chat threads. */
 export const LS_THREADS = 'obot_chats';
 /** LocalStorage key for the active thread ID. */
