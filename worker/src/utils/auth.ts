@@ -30,6 +30,7 @@ export const auth = (env: Env) => {
         session: schema.session,
         account: schema.account,
         verification: schema.verification,
+        rateLimit: schema.rateLimit,
       },
     }),
     baseURL: env.BETTER_AUTH_URL,

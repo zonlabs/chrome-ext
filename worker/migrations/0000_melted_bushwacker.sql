@@ -6,13 +6,23 @@ CREATE TABLE `account` (
 	`accessToken` text,
 	`refreshToken` text,
 	`idToken` text,
-	`expiresAt` integer,
+	`accessTokenExpiresAt` integer,
+	`refreshTokenExpiresAt` integer,
+	`scope` text,
 	`password` text,
 	`createdAt` integer NOT NULL,
 	`updatedAt` integer NOT NULL,
-	FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `rateLimit` (
+	`id` text PRIMARY KEY NOT NULL,
+	`key` text NOT NULL,
+	`count` integer NOT NULL,
+	`lastRequest` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `rateLimit_key_unique` ON `rateLimit` (`key`);--> statement-breakpoint
 CREATE TABLE `session` (
 	`id` text PRIMARY KEY NOT NULL,
 	`expiresAt` integer NOT NULL,
@@ -22,22 +32,28 @@ CREATE TABLE `session` (
 	`ipAddress` text,
 	`userAgent` text,
 	`userId` text NOT NULL,
-	FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+	`impersonatedBy` text,
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `session_token_unique` ON `session` (`token`);--> statement-breakpoint
-CREATE TABLE `users` (
+CREATE TABLE `user` (
 	`id` text PRIMARY KEY NOT NULL,
-	`email` text NOT NULL,
 	`name` text,
+	`email` text NOT NULL,
+	`emailVerified` integer DEFAULT false NOT NULL,
+	`image` text,
 	`picture` text,
 	`plan` text DEFAULT 'free' NOT NULL,
-	`emailVerified` integer DEFAULT 0 NOT NULL,
+	`role` text DEFAULT 'user' NOT NULL,
+	`banned` integer DEFAULT false NOT NULL,
+	`banReason` text,
+	`banExpires` integer,
 	`createdAt` integer,
 	`updatedAt` integer
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
+CREATE UNIQUE INDEX `user_email_unique` ON `user` (`email`);--> statement-breakpoint
 CREATE TABLE `verification` (
 	`id` text PRIMARY KEY NOT NULL,
 	`identifier` text NOT NULL,

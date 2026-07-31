@@ -2,9 +2,9 @@ import { AIChatAgent, OnChatMessageOptions } from "@cloudflare/ai-chat";
 import { createWorkersAI } from "workers-ai-provider";
 import { streamText, convertToModelMessages, pruneMessages, createUIMessageStreamResponse, toUIMessageStream, GenerateTextOnEndCallback, isStepCount, UIMessage } from "ai";
 
-import { DEFAULT_MODEL, buildSystemPrompt } from "./agent/models";
-import { extractFirstUserMessage, prepareModelMessages, generateChatTitle } from "./agent/messages";
-import { resolveAgentTools } from "./agent/tools";
+import { DEFAULT_MODEL, buildSystemPrompt } from "./models";
+import { extractFirstUserMessage, prepareModelMessages, generateChatTitle } from "./messages";
+import { resolveAgentTools } from "./tools";
 
 /**
  * Chat thread Durable Object handling conversational AI state,

@@ -28,7 +28,7 @@ index.ts (fetch handler)
 
 ### Durable Objects
 
-**`ChatAgent`** (`src/agent.ts`) — per-thread Durable Object extending `AIChatAgent`. Each chat thread is its own DO instance. Manages MCP servers directly via `this.addMcpServer()` / `this.removeMcpServer()`.
+**`ChatAgent`** (`src/agent/chat.ts`) — per-thread Durable Object extending `AIChatAgent`. Each chat thread is its own DO instance. Manages MCP servers directly via `this.addMcpServer()` / `this.removeMcpServer()`.
 
 Callable methods exposed to the Chrome extension:
 - `addPlugin(name, url)` — Connect an MCP server (returns `{ success, requiresAuth, authUrl, serverId }`)

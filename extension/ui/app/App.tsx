@@ -26,6 +26,8 @@ export default function App() {
   const [suggestionsLoading, setSuggestionsLoading]     = useState(false);
   /** Authenticated user object, or null if signed out. */
   const [user, setUser]               = useState<any>(null);
+  /** True until the stored auth session is resolved on mount (prevents a sign-in flash). */
+  const [authLoading, setAuthLoading] = useState(true);
   const handleAuthLost = useCallback(() => setUser(null), []);
 
   /** Currently selected model ID, persisted to and restored from localStorage. */
@@ -278,6 +280,7 @@ export default function App() {
 
     chrome.runtime.sendMessage({ type: 'auth:status' }, (response) => {
       if (response?.user) setUser(response.user);
+      setAuthLoading(false);
     });
 
     const handleMessage = (message: any) => {
@@ -385,6 +388,11 @@ export default function App() {
         onClose={() => setActiveView('chat')}
       />
     );
+  }
+
+  /** Wait for the stored auth session before rendering, so the sign-in screen never flashes for logged-in users. */
+  if (authLoading) {
+    return <ChatSkeleton />;
   }
 
   return (

@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "agent-db",
-      "database_id": "bd29e8f1-d971-4d76-9504-b24a99a344d2"
+      "database_id": "e5430c58-37e8-496f-ab39-ec90e96dd055"
     }
   ],
   "kv_namespaces": [

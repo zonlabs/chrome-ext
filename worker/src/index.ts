@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { routeAgentRequest } from 'agents';
 import { getAuthSuccessHtml } from './templates/authSuccess';
 
-import { ChatAgent } from './agent';
+import { ChatAgent } from './agent/chat';
 import { UserAgent } from './agent/user-agent';
 import { auth } from './utils/auth';
-import { checkAuth, checkAgentAccess } from './utils/agent-auth';
+import { corsOptions, preflightResponse } from './utils/cors';
+import { handleAgentRequest } from './utils/agent-request';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
 import faviconRoute from './routes/favicon';
@@ -14,34 +14,9 @@ import faviconRoute from './routes/favicon';
 export { ChatAgent, UserAgent };
 export { CodemodeRuntime } from '@cloudflare/codemode';
 
-const EXTENSION_ID = 'llihcpikannlnjolgcmbebnoihokiffn';
-const ALLOWED_ORIGINS = new Set([
-  `chrome-extension://${EXTENSION_ID}`,
-  'https://api.linkos.in',
-  'http://127.0.0.1:8787',
-]);
-
-/**
- * Returns the appropriate CORS origin header value based on the incoming request origin.
- */
-function getCorsOrigin(requestOrigin: string | null): string {
-  if (requestOrigin && ALLOWED_ORIGINS.has(requestOrigin)) {
-    return requestOrigin;
-  }
-  return `chrome-extension://${EXTENSION_ID}`;
-}
-
 const app = new Hono<{ Bindings: Env }>();
 
-app.use(
-  '/*',
-  cors({
-    origin: (origin) => (origin && ALLOWED_ORIGINS.has(origin) ? origin : null),
-    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['set-auth-token'],
-  })
-);
+app.use('/*', cors(corsOptions));
 
 app.get('/api/auth/callback', (c) => {
   return c.html(getAuthSuccessHtml());
@@ -57,79 +32,23 @@ app.route('/api', faviconRoute);
 
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
-
-/**
- * Attaches CORS headers to a Cloudflare Worker Response object.
- */
-function corsify(response: Response, requestOrigin: string | null): Response {
-  const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', getCorsOrigin(requestOrigin));
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
 export default {
   /**
    * Main fetch entry point for the Cloudflare Worker.
-   * Intercepts agent requests via `routeAgentRequest` and delegates remaining HTTP requests to Hono.
+   * Handles CORS preflight, routes agent requests, and delegates everything else to the Hono app.
    */
   async fetch(request: Request, env: Env) {
     const origin = request.headers.get('Origin');
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': getCorsOrigin(origin),
-          'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      });
+      return preflightResponse(origin);
     }
 
-    let sessionUserId: string | null = null;
-
-    // Check auth for agent routes (recommended pattern from official docs)
-    if (request.url.includes('/agents/')) {
-      const session = await checkAuth(request, env);
-      if (!session || !session.user || !session.user.id) {
-        return corsify(new Response('Unauthorized', { status: 401 }), origin);
-      }
-
-      sessionUserId = session.user.id;
-
-      const accessError = await checkAgentAccess(request, sessionUserId, env);
-      if (accessError) {
-        return corsify(accessError, origin);
-      }
-
-      // Attach internal user ID header to request for DO internal checks if needed
-      const headers = new Headers(request.headers);
-      headers.delete('x-authenticated-user-id');
-      headers.set('x-authenticated-user-id', sessionUserId);
-      request = new Request(request, { headers });
-    }
-
-    try {
-      const agentResponse = await routeAgentRequest(request, env, {
-        props: sessionUserId ? { userId: sessionUserId } : undefined,
-      });
-      if (agentResponse) {
-        return agentResponse.status === 101 ? agentResponse : corsify(agentResponse, origin);
-      }
-    } catch (err) {
-      console.error('[routeAgentRequest ERROR]', err);
-      return corsify(
-        new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 500 }),
-        origin
-      );
+    const agentResponse = await handleAgentRequest(request, env, origin);
+    if (agentResponse) {
+      return agentResponse;
     }
 
     return app.fetch(request, env);
   },
 };
-
