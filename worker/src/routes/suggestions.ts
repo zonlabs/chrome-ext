@@ -1,6 +1,9 @@
 import { Hono } from 'hono';
+import { rateLimitMiddleware } from '../utils/rate-limit';
 
 const route = new Hono<{ Bindings: Env }>();
+
+route.use('/suggestions', rateLimitMiddleware({ windowMs: 60_000, max: 30 }));
 
 route.post('/suggestions', async (c) => {
   const { url, title, pageText } = await c.req.json<{

@@ -1,10 +1,13 @@
 import { Hono } from 'hono';
 import { auth } from '../utils/auth';
+import { rateLimitMiddleware } from '../utils/rate-limit';
 
 const TTL = 60 * 60 * 24 * 365;
 const kvKey = (userId: string) => `threads:${userId}`;
 interface Thread { id: string; title: string; createdAt: number; }
 const app = new Hono<{ Bindings: Env }>();
+
+app.use('/threads/*', rateLimitMiddleware({ windowMs: 60_000, max: 120 }));
 
 async function getUserId(c: any): Promise<string | null> {
   const session = await auth(c.env).api.getSession({ headers: c.req.raw.headers });
