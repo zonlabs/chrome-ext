@@ -8,9 +8,7 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: write
-      pull-requests: write
+      contents: read
       issues: write
     steps:
       - name: Check account age
@@ -34,9 +32,9 @@ jobs:
       - uses: anomalyco/opencode/github@latest
         if: steps.check.outputs.result == 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: anthropic/claude-sonnet-4-20250514
+          model: opencode/deepseek-v4-flash-free
           prompt: |
             Review this issue. If there's a clear fix or relevant docs:
             - Provide documentation links

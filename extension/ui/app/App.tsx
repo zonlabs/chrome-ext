@@ -9,6 +9,16 @@ import { getPluginsAgentId } from '../features/plugins/lib/agentId';
 import { getActiveTabPageContext } from '../features/chat/lib/clientTools';
 import { WORKER_URL, VALID_MODELS, DEFAULT_MODEL, MODELS_DATA, LS_DISABLED_PLUGINS, LS_MODEL } from '../../shared/constants';
 
+/** Read the stored session JWT from the background service worker for authed API calls. */
+function getAuthHeader(): Promise<{ Authorization: string } | Record<string, never>> {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'auth:snapshot' }, (response) => {
+      if (response?.jwt) resolve({ Authorization: `Bearer ${response.jwt}` });
+      else resolve({});
+    });
+  });
+}
+
 /** Main application component Ã¢â‚¬â€ orchestrates state, side-effects, and view routing (chat vs plugins). */
 export default function App() {
   // Ã¢â€â‚¬Ã¢â€â‚¬ Tab state Ã¢â€â‚¬Ã¢â€â‚¬
@@ -211,7 +221,10 @@ export default function App() {
 
       fetch(`${WORKER_URL}/api/suggestions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getAuthHeader()),
+        },
         body: JSON.stringify({ url: tabUrl, title: tabTitle, pageText }),
       })
         .then((r) => r.json())
