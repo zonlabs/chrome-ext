@@ -1,5 +1,5 @@
 import { routeAgentRequest } from 'agents';
-import { checkAuth, checkAgentAccess } from './agent-auth';
+import { checkAuth, checkAgentAccess } from './auth';
 import { corsify } from './cors';
 
 const AGENT_ROUTE_PREFIX = '/agents/';

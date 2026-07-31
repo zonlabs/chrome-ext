@@ -1,19 +1,12 @@
 import { Hono } from 'hono';
-import { auth } from '../utils/auth';
 import { rateLimitMiddleware } from '../utils/rate-limit';
+import { requireAuth, type AuthEnv } from '../utils/auth';
 
-const route = new Hono<{ Bindings: Env }>();
+const route = new Hono<AuthEnv>();
 
-route.use('/suggestions', rateLimitMiddleware({ windowMs: 60_000, max: 30 }));
+route.use('/suggestions', rateLimitMiddleware({ windowMs: 60_000, max: 30 }), requireAuth);
 
-async function getUserId(c: any): Promise<string | null> {
-  const session = await auth(c.env).api.getSession({ headers: c.req.raw.headers });
-  return session?.user?.id ?? null;
-}
 route.post('/suggestions', async (c) => {
-  const userId = await getUserId(c);
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
-
   let body: Record<string, unknown>;
   try {
     body = await c.req.json();
