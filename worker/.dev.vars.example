@@ -1,0 +1,9 @@
+# Better Auth
+BETTER_AUTH_SECRET=replace-with-a-long-random-string
+BETTER_AUTH_API_KEY=replace-with-your-better-auth-api-key
+# Local dev only; in production this is https://api.linkos.in
+BETTER_AUTH_URL=http://127.0.0.1:8787
+
+# Google OAuth (sign-in provider)
+GOOGLE_CLIENT_ID=replace-with-your-google-client-id
+GOOGLE_CLIENT_SECRET=replace-with-your-google-client-secret
