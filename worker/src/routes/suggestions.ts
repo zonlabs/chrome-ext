@@ -1,16 +1,40 @@
 import { Hono } from 'hono';
+import { auth } from '../utils/auth';
 import { rateLimitMiddleware } from '../utils/rate-limit';
 
 const route = new Hono<{ Bindings: Env }>();
 
 route.use('/suggestions', rateLimitMiddleware({ windowMs: 60_000, max: 30 }));
 
+async function getUserId(c: any): Promise<string | null> {
+  const session = await auth(c.env).api.getSession({ headers: c.req.raw.headers });
+  return session?.user?.id ?? null;
+}
 route.post('/suggestions', async (c) => {
-  const { url, title, pageText } = await c.req.json<{
-    url: string;
-    title: string;
-    pageText?: string;
-  }>();
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400);
+  }
+
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    Array.isArray(body) ||
+    typeof body.url !== 'string' ||
+    body.url.trim().length === 0 ||
+    typeof body.title !== 'string' ||
+    body.title.trim().length === 0 ||
+    (body.pageText !== undefined && typeof body.pageText !== 'string')
+  ) {
+    return c.json({ error: 'Invalid suggestion payload' }, 400);
+  }
+
+  const { url, title, pageText } = body;
 
   const contextBlock = [
     `Tab URL: ${url}`,
