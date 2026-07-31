@@ -11,28 +11,30 @@ import { McpProxy } from "../mcp-proxy";
  *
  * @param options - Chat message execution options provided by the framework.
  * @param env - Worker environment bindings.
+ * @param pluginsAgentId - Server-derived plugins agent ID (e.g. user-<userId>).
  * @returns Combined toolset object ready for Vercel AI SDK `streamText`.
  */
 export async function resolveAgentTools(
   options: OnChatMessageOptions | undefined,
-  env: Env
+  env: Env,
+  pluginsAgentId?: string
 ): Promise<ToolSet> {
   const clientTools = options?.clientTools?.length
     ? createToolsFromClientSchemas(options.clientTools)
     : {};
 
-  const pluginsAgentId = options?.body?.pluginsAgentId as string | undefined;
   const enabledPlugins = options?.body?.enabledPlugins as string[] | undefined;
 
   let mcpTools: ToolSet = {};
   if (pluginsAgentId) {
     try {
+      const agentNs = (env as any).UserAgent;
       const sharedMcp = new McpProxy(() =>
-        Promise.resolve(env.McpAgent.get(env.McpAgent.idFromName(pluginsAgentId)))
+        Promise.resolve(agentNs.get(agentNs.idFromName(pluginsAgentId)))
       );
       mcpTools = await sharedMcp.getAITools(5_000, enabledPlugins);
     } catch (err) {
-      console.error("[ChatAgent] Failed to get tools from plugins DO:", err);
+      console.error("[ChatAgent] Failed to get tools from UserAgent DO:", err);
     }
   }
 

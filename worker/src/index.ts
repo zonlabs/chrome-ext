@@ -4,13 +4,14 @@ import { routeAgentRequest } from 'agents';
 import { getAuthSuccessHtml } from './templates/authSuccess';
 
 import { ChatAgent } from './agent';
-import { McpAgent } from './agent/mcp-agent';
+import { UserAgent } from './agent/user-agent';
 import { auth } from './utils/auth';
+import { checkAuth, checkAgentAccess } from './utils/agent-auth';
 import threadsRoute from './routes/threads';
 import suggestionsRoute from './routes/suggestions';
 import faviconRoute from './routes/favicon';
 
-export { ChatAgent, McpAgent };
+export { ChatAgent, UserAgent };
 export { CodemodeRuntime } from '@cloudflare/codemode';
 
 const EXTENSION_ID = 'llihcpikannlnjolgcmbebnoihokiffn';
@@ -90,8 +91,33 @@ export default {
       });
     }
 
+    let sessionUserId: string | null = null;
+
+    // Check auth for agent routes (recommended pattern from official docs)
+    if (request.url.includes('/agents/')) {
+      const session = await checkAuth(request, env);
+      if (!session || !session.user || !session.user.id) {
+        return corsify(new Response('Unauthorized', { status: 401 }), origin);
+      }
+
+      sessionUserId = session.user.id;
+
+      const accessError = await checkAgentAccess(request, sessionUserId, env);
+      if (accessError) {
+        return corsify(accessError, origin);
+      }
+
+      // Attach internal user ID header to request for DO internal checks if needed
+      const headers = new Headers(request.headers);
+      headers.delete('x-authenticated-user-id');
+      headers.set('x-authenticated-user-id', sessionUserId);
+      request = new Request(request, { headers });
+    }
+
     try {
-      const agentResponse = await routeAgentRequest(request, env);
+      const agentResponse = await routeAgentRequest(request, env, {
+        props: sessionUserId ? { userId: sessionUserId } : undefined,
+      });
       if (agentResponse) {
         return agentResponse.status === 101 ? agentResponse : corsify(agentResponse, origin);
       }
@@ -106,3 +132,4 @@ export default {
     return app.fetch(request, env);
   },
 };
+

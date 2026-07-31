@@ -84,13 +84,22 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
   }, [enabledPluginsString]);
 
 
-  /** Memoized agent configuration object ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ensures useAgent returns a stable connection instance across renders. */
+  /** Async query generator that attaches the session JWT to the agent WebSocket URL. */
+  const asyncQuery = useCallback(async () => {
+    const snapshot: { jwt?: string } = await new Promise((resolve) =>
+      chrome.runtime.sendMessage({ type: 'auth:snapshot' }, resolve)
+    );
+    return { token: snapshot?.jwt || '' };
+  }, []);
+
+  /** Memoized agent configuration object — ensures useAgent returns a stable connection instance across renders. */
   const agentOptions = useMemo(() => ({
-    agent: 'McpAgent',
+    agent: 'UserAgent',
     name: pluginsAgentId,
     sub: [{ agent: 'ChatAgent', name: activeThreadId! }],
     host: WORKER_URL,
-  }), [pluginsAgentId, activeThreadId]);
+    query: asyncQuery,
+  }), [pluginsAgentId, activeThreadId, asyncQuery]);
 
   /** Agent connection for the current active thread. */
   const agent = useAgent(agentOptions);
@@ -152,10 +161,8 @@ function ActiveThreadChatView(props: ChatViewProps & { initialRequest?: InitialM
   /** Memoized request body for useAgentChat. */
   const chatBody = useMemo(() => ({
     model,
-    pluginsAgentId,
-    userId: user?.id || null,
     enabledPlugins: enabledPluginIds
-  }), [model, pluginsAgentId, user?.id, enabledPluginsString]);
+  }), [model, enabledPluginsString]);
 
   /** Chat state: message list, send/stop helpers, tool approval, and streaming status from the agent. */
   const { messages, sendMessage, addToolApprovalResponse, status, stop, setMessages, error: chatError } = useAgentChat({

@@ -38,7 +38,7 @@ export function buildSystemPrompt(modelName: string): string {
   const visionNote = supportsVision(modelName)
     ? `\n- A viewport screenshot is also attached as an image whenever the current page is accessible and your model supports vision.`
     : '';
-  return `You are Obot, a helpful browser assistant.
+  return `You are a helpful browser assistant.
 Current Date and Time: ${dateStr} (${now.toISOString()}).
 
 You are running on model: ${modelName}${supportsVision(modelName) ? ' (vision-capable)' : ''}.

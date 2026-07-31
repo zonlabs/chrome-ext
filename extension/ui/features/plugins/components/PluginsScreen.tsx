@@ -182,11 +182,19 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ agentId, userId, o
     }
   }, []);
 
+  const asyncQuery = useCallback(async () => {
+    const snapshot: { jwt?: string } = await new Promise((resolve) =>
+      chrome.runtime.sendMessage({ type: 'auth:snapshot' }, resolve)
+    );
+    return { token: snapshot?.jwt || '' };
+  }, []);
+
   /** Agent connection for MCP state streaming — receives server, tool, and resource updates. */
   const agent = useAgent({
-    agent: 'McpAgent',
+    agent: 'UserAgent',
     name: agentId,
     host: WORKER_URL,
+    query: asyncQuery,
     onClose: useCallback(() => setConnectionStatus('disconnected'), []),
     onOpen: useCallback(() => setConnectionStatus('connected'), []),
     onMcpUpdate: handleMcpUpdate,

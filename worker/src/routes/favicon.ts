@@ -12,7 +12,7 @@ async function tryFetch(url: string, timeoutMs: number): Promise<{ buffer: Array
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(timeoutMs),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Obot/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AgentAPI/1.0)' },
     });
     if (!res.ok) return null;
     const ct = res.headers.get('Content-Type') || '';

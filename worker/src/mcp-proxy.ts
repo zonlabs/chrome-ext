@@ -1,7 +1,6 @@
 import type { ToolSet } from "ai";
 import { z } from "zod";
-import type { McpAgent } from "./agent/mcp-agent";
-
+import type { UserAgent } from "./agent/user-agent";
 
 export interface McpToolDescriptor {
   name: string;
@@ -15,20 +14,20 @@ export interface McpToolDescriptor {
 }
 
 export class McpProxy {
-  #stubPromise?: Promise<DurableObjectStub<McpAgent>>;
+  #stubPromise?: Promise<DurableObjectStub<UserAgent>>;
 
   constructor(
-    private getParent: () => Promise<DurableObjectStub<McpAgent>>
+    private getParent: () => Promise<DurableObjectStub<UserAgent>>
   ) {}
 
-  private parent(): Promise<DurableObjectStub<McpAgent>> {
+  private parent(): Promise<DurableObjectStub<UserAgent>> {
     this.#stubPromise ??= this.getParent();
     return this.#stubPromise;
   }
 
   async getAITools(timeoutMs = 5_000, serverFilter?: string[]): Promise<ToolSet> {
     const parent = await this.parent();
-    const descriptors = await parent.listMcpToolDescriptors(timeoutMs, serverFilter) as unknown as McpToolDescriptor[];
+    const descriptors = (await (parent as any).listMcpToolDescriptors(timeoutMs, serverFilter)) as unknown as McpToolDescriptor[];
 
     const entries: [string, ToolSet[string]][] = [];
     for (const descriptor of descriptors) {
@@ -48,7 +47,7 @@ export class McpProxy {
               : z.fromJSONSchema({ type: "object" }),
             execute: async (args) => {
               const stub = await this.parent();
-              const result = await stub.callMcpTool(
+              const result = await (stub as any).callMcpTool(
                 serverId,
                 name,
                 args as Record<string, unknown>
