@@ -12,7 +12,7 @@
     "scripting"
   ],
   "oauth2": {
-    "client_id": "4924083673-keao38oe65lth768v8r0d2lb76s06cuc.apps.googleusercontent.com",
+    "client_id": "4924083673-9u1npacjm2egsp8ebsnsrd75gpn5qqlg.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"

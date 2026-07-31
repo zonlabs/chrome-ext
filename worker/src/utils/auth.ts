@@ -55,7 +55,11 @@ export const auth = (env: Env) => {
         ipAddressHeaders: ['cf-connecting-ip'],
       },
     },
-    trustedOrigins: ["https://dash.better-auth.com"],
+    trustedOrigins: [
+      "https://dash.better-auth.com",
+      "chrome-extension://llihcpikannlnjolgcmbebnoihokiffn",
+      "http://127.0.0.1:8787",
+    ],
     user: {
       modelName: "users",
       fields: {

@@ -122,7 +122,8 @@ async function handleSignOut(): Promise<{ success: boolean }> {
   if (jwt) {
     await fetch(`${WORKER_URL}/api/auth/sign-out`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({}),
     }).catch(() => {});
   }
   await chrome.storage.local.remove(['jwt', 'user']);
