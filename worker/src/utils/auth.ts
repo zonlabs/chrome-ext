@@ -1,6 +1,9 @@
 import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, bearer } from "better-auth/plugins";
 import { dash } from "@better-auth/infra";
+import { getDb } from "../db";
+import * as schema from "../db/schema";
 
 type GoogleAuthEnv = Env & {
   ADMIN_USER_IDS?: string;
@@ -17,8 +20,18 @@ export const auth = (env: Env) => {
     .map((id) => id.trim())
     .filter(Boolean);
 
+  const db = getDb(env);
+
   return betterAuth({
-    database: env.DB,
+    database: drizzleAdapter(db, {
+      provider: "sqlite",
+      schema: {
+        user: schema.user,
+        session: schema.session,
+        account: schema.account,
+        verification: schema.verification,
+      },
+    }),
     baseURL: env.BETTER_AUTH_URL,
     plugins: [
       bearer(),
@@ -41,7 +54,6 @@ export const auth = (env: Env) => {
       window: 60,
       max: 100,
       customRules: {
-        // Google sign-in is the highest-cost unauthenticated operation.
         '/sign-in/social': {
           window: 60,
           max: 5,
@@ -50,8 +62,6 @@ export const auth = (env: Env) => {
     },
     advanced: {
       ipAddress: {
-        // Cloudflare sets this header to the original client IP.
-        // Avoid falling back to X-Forwarded-For, whose leftmost value can be spoofed.
         ipAddressHeaders: ['cf-connecting-ip'],
       },
     },
@@ -61,7 +71,7 @@ export const auth = (env: Env) => {
       "http://127.0.0.1:8787",
     ],
     user: {
-      modelName: "users",
+      modelName: "user",
       fields: {
         image: "picture",
       },

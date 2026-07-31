@@ -1,6 +1,6 @@
 -- 001_init.sql
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS user (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS session (
   updatedAt INTEGER NOT NULL,
   ipAddress TEXT,
   userAgent TEXT,
-  userId TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS account (
   id TEXT PRIMARY KEY,
   accountId TEXT NOT NULL,
   providerId TEXT NOT NULL,
-  userId TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
   accessToken TEXT,
   refreshToken TEXT,
   idToken TEXT,
