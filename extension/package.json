@@ -2,21 +2,36 @@
   "name": "obot-extension",
   "version": "0.1.8",
   "private": true,
+  "type": "module",
   "scripts": {
-    "test": "node --test tests/**/*.test.mjs",
-    "sync-version": "node -e \"const fs=require('fs'),pkg=require('./package.json'),m=JSON.parse(fs.readFileSync('./manifest.json','utf8'));m.version=pkg.version;fs.writeFileSync('./manifest.json',JSON.stringify(m,null,2)+'\\n');console.log('Synced manifest.json version to ' + pkg.version);\"",
-    "build": "npm run sync-version && esbuild ui/app/main.tsx --bundle --outfile=ui/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"production\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"production\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"production\\\"",
-    "build:dev": "npm run sync-version && esbuild ui/app/main.tsx --bundle --outfile=ui/dist/app.js --loader:.tsx=tsx --define:__BUILD_ENV__=\\\"development\\\" && esbuild service-worker.ts --bundle --outfile=dist/service-worker.js --format=esm --platform=browser --define:__BUILD_ENV__=\\\"development\\\" && esbuild content-script.ts --bundle --outfile=dist/content-script.js --format=iife --platform=browser --define:__BUILD_ENV__=\\\"development\\\"",
-    "watch": "npm run sync-version && esbuild ui/app/main.tsx --bundle --outfile=ui/dist/app.js --loader:.tsx=tsx --watch"
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "tsc --noEmit",
+    "test": "vitest run",
+    "postinstall": "wxt prepare"
   },
   "dependencies": {
     "@cloudflare/ai-chat": "^0.10.0",
+    "@tanstack/react-query": "^5.101.4",
     "agents": "^0.19.0",
     "lucide-react": "^1.25.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/chrome": "^0.1.43",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@wxt-dev/module-react": "^1.2.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "jsdom": "^26.1.0",
+    "wxt": "^0.20.27"
   }
 }

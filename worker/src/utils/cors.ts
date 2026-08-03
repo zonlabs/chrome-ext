@@ -4,6 +4,8 @@ const ALLOWED_ORIGINS = new Set([
   `chrome-extension://${EXTENSION_ID}`,
   'https://api.linkos.in',
   'http://127.0.0.1:8787',
+  'http://127.0.0.1:3000',
+  'http://localhost:3000',
 ]);
 
 const ALLOW_METHODS = 'GET, POST, PATCH, DELETE, OPTIONS';
@@ -27,6 +29,7 @@ export function corsify(response: Response, requestOrigin: string | null): Respo
   headers.set('Access-Control-Allow-Origin', getCorsOrigin(requestOrigin));
   headers.set('Access-Control-Allow-Methods', ALLOW_METHODS);
   headers.set('Access-Control-Allow-Headers', ALLOW_HEADERS);
+  headers.set('Access-Control-Allow-Credentials', 'true');
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -43,6 +46,7 @@ export function preflightResponse(requestOrigin: string | null): Response {
       'Access-Control-Allow-Origin': getCorsOrigin(requestOrigin),
       'Access-Control-Allow-Methods': ALLOW_METHODS,
       'Access-Control-Allow-Headers': ALLOW_HEADERS,
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }
@@ -55,4 +59,5 @@ export const corsOptions = {
   allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   exposeHeaders: ['set-auth-token'],
+  credentials: true,
 };

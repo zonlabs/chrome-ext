@@ -8,6 +8,8 @@
     "build:ext:dev": "cd extension && npm run build:dev",
     "build:worker": "cd worker && npx wrangler deploy",
     "dev:worker": "cd worker && npx wrangler dev",
+    "dev:web": "cd web && npm run dev",
+    "build:web": "cd web && npm run build",
     "dev:ext": "cd extension && npm run watch",
     "migrate": "cd worker && npx wrangler d1 migrations apply agent-db"
   },
