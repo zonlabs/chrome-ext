@@ -427,7 +427,7 @@ function ActiveThreadChatView(
   const isStreaming = !isAborted && (status === 'streaming' || status === 'submitted' || !!activeTool);
 
   return (
-    <>
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
       <ChatHeader
         title={activeThreadTitle}
         activeThreadId={activeThreadId}
@@ -521,13 +521,13 @@ function ActiveThreadChatView(
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
 function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onSubmit: () => void }) {
   return (
-    <>
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
       <ChatHeader
         activeThreadId={null}
         threads={props.threads}
@@ -588,7 +588,7 @@ function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onS
         onSelectModel={props.onSelectModel}
         onStop={() => {}}
       />
-    </>
+    </div>
   );
 }
 

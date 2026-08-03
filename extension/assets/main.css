@@ -35,6 +35,24 @@
   --error-text: #f2b8b5;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary, #131314);
+  color: var(--text-primary, #e3e3e3);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
 @font-face {
   font-family: 'Inter';
   src: url('/fonts/inter-400.woff2') format('woff2');
