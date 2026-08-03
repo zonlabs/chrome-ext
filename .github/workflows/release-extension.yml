@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
 
       - name: Extract extension version
         id: get_version
@@ -42,20 +42,21 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install dependencies and build extension
+      - name: Install dependencies, build and zip extension
         if: steps.check_tag.outputs.exists != 'true'
         run: |
           cd extension
           npm ci
           npm run build
+          npm run zip
 
-      - name: Package extension into ZIP
+      - name: Locate built zip
+        id: zip_path
         if: steps.check_tag.outputs.exists != 'true'
         run: |
-          cd extension
-          ZIP_NAME="obot-extension-v${{ steps.get_version.outputs.version }}.zip"
-          zip -r "../$ZIP_NAME" manifest.json dist ui
-          echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+          ZIP_PATH=$(ls extension/.output/*.zip | head -n 1)
+          echo "zip_name=$(basename "$ZIP_PATH")" >> $GITHUB_OUTPUT
+          echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: steps.check_tag.outputs.exists != 'true'
@@ -65,14 +66,14 @@ jobs:
           name: "Obot Extension v${{ steps.get_version.outputs.version }}"
           body: |
             ## Obot Chrome Extension v${{ steps.get_version.outputs.version }}
-            
+
             ### How to Install:
-            1. Download `obot-extension-v${{ steps.get_version.outputs.version }}.zip` attached below.
+            1. Download `${{ steps.zip_path.outputs.zip_name }}` attached below.
             2. Unzip/extract the downloaded file to a folder on your computer.
             3. Open Google Chrome and navigate to `chrome://extensions`.
             4. Enable **Developer mode** (toggle in the top right corner).
             5. Click **Load unpacked** and select the extracted extension folder.
-          files: "obot-extension-v${{ steps.get_version.outputs.version }}.zip"
+          files: "${{ steps.zip_path.outputs.zip_path }}"
           draft: false
           prerelease: false
         env:

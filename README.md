@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="extension/ui/assets/icons/icon.svg" width="128" height="128" alt="Obot Logo" />
+  <img src="extension/public/icons/icon.svg" width="128" height="128" alt="Obot Logo" />
 </p>
 
 <h1 align="center">Obot</h1>
