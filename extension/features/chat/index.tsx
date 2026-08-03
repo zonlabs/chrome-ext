@@ -518,7 +518,7 @@ function ActiveThreadChatView(
   );
 }
 
-function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onSubmit: () => void }) {
+function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; createError: string | null; onSubmit: () => void }) {
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
       <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-3xl mx-auto">
@@ -550,6 +550,11 @@ function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onS
           />
         </div>
         <ChatPluginBar user={props.user} availablePlugins={props.availablePlugins} disabledPlugins={props.disabledPlugins} onTogglePlugin={props.onTogglePlugin} />
+        {props.createError && (
+          <div className="px-4 pb-2">
+            <div className="text-sm leading-relaxed text-error-text">{props.createError}</div>
+          </div>
+        )}
         <ChatInput
           inputValue={props.inputValue}
           setInputValue={props.setInputValue}
@@ -590,6 +595,7 @@ function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onS
 export function ChatScreen(props: ChatScreenProps) {
   const [pendingInitialMessage, setPendingInitialMessage] = useState<InitialMessageRequest | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const creatingThreadRef = useRef(false);
   const handleInitialMessageSent = useCallback(() => setPendingInitialMessage(null), []);
 
@@ -599,6 +605,7 @@ export function ChatScreen(props: ChatScreenProps) {
     if (creatingThreadRef.current) return;
     creatingThreadRef.current = true;
     setIsCreating(true);
+    setCreateError(null);
     try {
       let context: InitialMessageRequest['context'] = { pageContext: null, screenshot: null };
       try {
@@ -609,10 +616,15 @@ export function ChatScreen(props: ChatScreenProps) {
           screenshot: modelEntry?.hasVision ? await captureScreenshot() : null,
         };
       } catch {}
-      const thread = await props.createThread();
-      props.setActiveThreadId(thread.id);
-      setPendingInitialMessage({ text, context });
-      props.setInputValue('');
+      try {
+        const thread = await props.createThread();
+        props.setActiveThreadId(thread.id);
+        setPendingInitialMessage({ text, context });
+        props.setInputValue('');
+      } catch (error) {
+        const detail = error instanceof Error && error.message.trim() ? error.message : 'Please sign in and try again.';
+        setCreateError(`Couldn't start a chat. ${detail}`);
+      }
     } finally {
       creatingThreadRef.current = false;
       setIsCreating(false);
@@ -620,7 +632,7 @@ export function ChatScreen(props: ChatScreenProps) {
   };
 
   if (!props.activeThreadId) {
-    return <EmptyThreadChatView {...props} isCreating={isCreating} onSubmit={() => void createAndSend()} />;
+    return <EmptyThreadChatView {...props} isCreating={isCreating} createError={createError} onSubmit={() => void createAndSend()} />;
   }
 
   return <ActiveThreadChatView key={props.activeThreadId} {...props} initialRequest={pendingInitialMessage ?? undefined} onInitialMessageSent={handleInitialMessageSent} />;

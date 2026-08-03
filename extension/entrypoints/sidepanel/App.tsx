@@ -84,7 +84,7 @@ function Shell() {
     setActiveTabUrl(tabUrl);
     setActiveTabTitle(activeTab.title ?? '');
     prevActiveTabUrlRef.current = tabUrl;
-    setSelectedUrls([tabUrl]);
+    setSelectedUrls(isRestrictedUrl(tabUrl) ? [] : [tabUrl]);
 
     const threadForThisTab = tabThreadMapRef.current.get(tabUrl);
     if (threadForThisTab) {
