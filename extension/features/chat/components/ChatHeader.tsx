@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { MoreVertical, PictureInPicture2, SquarePen } from 'lucide-react';
 import { browser } from 'wxt/browser';
 import { HistoryPopup } from './HistoryPopup';
+import type { PremiumUser } from '../../../lib/types';
 
 interface ChatHeaderProps {
   title?: string;
@@ -13,7 +14,7 @@ interface ChatHeaderProps {
   historyRef: React.RefObject<HTMLDivElement | null>;
   onNewChat: () => void;
   onDeleteThread: (id: string) => void;
-  user: any;
+  user: PremiumUser | null;
   onSignIn: () => void;
   signingIn?: boolean;
   onSignOut: () => void;
@@ -21,6 +22,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader(props: ChatHeaderProps) {
+  const user: (PremiumUser & { name?: string; picture?: string | null }) | null = props.user;
   const popoutMode = new URLSearchParams(window.location.search).has('popout');
   const togglePopout = useCallback(() => {
     if (popoutMode) {
@@ -90,12 +92,12 @@ export function ChatHeader(props: ChatHeaderProps) {
             />
           )}
         </div>
-        {props.user &&
-          (props.user.picture ? (
-            <img className="w-6 h-6 rounded-full object-cover flex-shrink-0" src={props.user.picture} alt="" title={props.user.name} />
+        {user &&
+          (user.picture ? (
+            <img className="w-6 h-6 rounded-full object-cover flex-shrink-0" src={user.picture} alt="" title={user.name} />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-[var(--accent-blue,#ff8a80)] text-white flex items-center justify-center text-[12px] font-semibold flex-shrink-0" title={props.user.name}>
-              {props.user.name?.charAt(0).toUpperCase() || '?'}
+            <div className="w-6 h-6 rounded-full bg-[var(--accent-blue,#ff8a80)] text-white flex items-center justify-center text-[12px] font-semibold flex-shrink-0" title={user.name}>
+              {user.name?.charAt(0).toUpperCase() || '?'}
             </div>
           ))}
         <button

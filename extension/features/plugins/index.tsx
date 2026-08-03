@@ -16,7 +16,16 @@ import {
 import { usePlugins } from '../../lib/agent';
 import { WORKER_URL } from '../../lib/constants';
 
-const BUILTIN_PLUGINS = [
+interface BuiltinPlugin {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  icon?: string;
+  additionalInfo?: string;
+}
+
+const BUILTIN_PLUGINS: BuiltinPlugin[] = [
   {
     id: 'exa',
     name: 'Exa Search',
@@ -77,11 +86,22 @@ interface McpServer {
   icon?: string;
 }
 
+interface JsonSchemaProperty {
+  type?: string;
+  description?: string;
+}
+
+interface ToolInputSchema {
+  type?: string;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+}
+
 interface McpTool {
   serverId: string;
   name: string;
   description?: string;
-  inputSchema?: any;
+  inputSchema?: ToolInputSchema;
 }
 
 interface McpResource {
@@ -92,44 +112,69 @@ interface McpResource {
   mimeType?: string;
 }
 
+interface McpServerEntry {
+  name?: string;
+  url?: string;
+  server_url?: unknown;
+  config?: unknown;
+  state?: unknown;
+  [key: string]: unknown;
+}
+
+interface McpState {
+  servers?: Record<string, McpServerEntry>;
+  tools?: unknown;
+  resources?: unknown;
+  descriptors?: unknown;
+}
+
+interface McpToolDescriptor {
+  tools: McpTool[];
+}
+
+interface McpResourceDescriptor {
+  resources: McpResource[];
+}
+
 interface PluginsScreenProps {
   onClose: () => void;
 }
 
-function mcpStateToServers(mcpState: any): McpServer[] {
-  return Object.entries(mcpState?.servers ?? {}).map(([id, server]: [string, any]) => {
-    const rawUrl = server.url || server.server_url || server.config?.url || '';
+function mcpStateToServers(mcpState: McpState): McpServer[] {
+  return Object.entries(mcpState?.servers ?? {}).map(([id, server]) => {
+    const config = server.config as { url?: string; name?: string } | undefined;
+    const rawUrl = server.url || (server.server_url as string | undefined) || config?.url || '';
     const builtin = BUILTIN_PLUGINS.find(
       (bp) =>
         bp.id === id ||
         (rawUrl && bp.url === rawUrl) ||
         (server.name && bp.name.toLowerCase() === server.name.toLowerCase()) ||
-        (server.config?.name && bp.name.toLowerCase() === server.config.name.toLowerCase())
+        (config?.name && bp.name.toLowerCase() === config.name.toLowerCase())
     );
 
-    const displayName = server.name || builtin?.name || server.config?.name || id;
+    const displayName = server.name || builtin?.name || config?.name || id;
 
     return {
       id,
       name: displayName,
       url: rawUrl || builtin?.url || '',
-      state: server.state ?? 'unknown',
+      state: (server.state as string | undefined) ?? 'unknown',
       icon: builtin?.icon,
     };
   });
 }
 
-function mcpStateToTools(mcpState: any): McpTool[] {
+function mcpStateToTools(mcpState: McpState): McpTool[] {
   if (Array.isArray(mcpState?.tools)) {
-    return mcpState.tools;
+    return mcpState.tools as McpTool[];
   }
   const tools: McpTool[] = [];
-  const source = mcpState?.descriptors || mcpState?.tools || {};
-  for (const [serverId, desc] of Object.entries(source) as [string, any][]) {
+  const source = (mcpState as { descriptors?: Record<string, unknown> }).descriptors || (mcpState?.tools as Record<string, unknown> | undefined) || {};
+  for (const [serverId, desc] of Object.entries(source)) {
     if (Array.isArray(desc)) {
-      tools.push(...desc);
-    } else if (desc?.tools && Array.isArray(desc.tools)) {
-      for (const tool of desc.tools) {
+      tools.push(...(desc as McpTool[]));
+    } else if (desc && typeof desc === 'object' && Array.isArray((desc as McpToolDescriptor).tools)) {
+      for (const tool of (desc as McpToolDescriptor).tools) {
         tools.push({
           serverId,
           name: tool.name,
@@ -142,17 +187,17 @@ function mcpStateToTools(mcpState: any): McpTool[] {
   return tools;
 }
 
-function mcpStateToResources(mcpState: any): McpResource[] {
+function mcpStateToResources(mcpState: McpState): McpResource[] {
   if (Array.isArray(mcpState?.resources)) {
     return mcpState.resources;
   }
   const resources: McpResource[] = [];
-  const source = mcpState?.descriptors || mcpState?.resources || {};
-  for (const [serverId, desc] of Object.entries(source) as [string, any][]) {
+  const source = (mcpState as { descriptors?: Record<string, unknown> }).descriptors || (mcpState?.resources as Record<string, unknown> | undefined) || {};
+  for (const [serverId, desc] of Object.entries(source)) {
     if (Array.isArray(desc)) {
-      resources.push(...desc);
-    } else if (desc?.resources && Array.isArray(desc.resources)) {
-      for (const res of desc.resources) {
+      resources.push(...(desc as McpResource[]));
+    } else if (desc && typeof desc === 'object' && Array.isArray((desc as McpResourceDescriptor).resources)) {
+      for (const res of (desc as McpResourceDescriptor).resources) {
         resources.push({
           serverId,
           name: res.name || res.uri,
@@ -327,7 +372,7 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ onClose }) => {
                     <div key={bp.id} className="flex flex-col gap-0.5 px-3 py-2 hover:bg-[#1e1f20] transition-colors">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <FaviconBlock serverUrl={bp.url} icon={(bp as any).icon} />
+                          <FaviconBlock serverUrl={bp.url} icon={bp.icon} />
                           <span className="text-xs font-semibold text-[#e3e3e3] truncate">{bp.name}</span>
                         </div>
                         {connected ? (
@@ -369,9 +414,9 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ onClose }) => {
                       <p className="text-[11px] text-[#8e8e8e] m-0 leading-normal">
                         {bp.description}
                       </p>
-                      {(bp as any).additionalInfo && (
+                      {bp.additionalInfo && (
                         <div className="text-[10px] text-[#ff8a80] font-mono break-all mt-0.5">
-                          {(bp as any).additionalInfo}
+                          {bp.additionalInfo}
                         </div>
                       )}
                     </div>
@@ -461,8 +506,8 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ onClose }) => {
                       </div>
                       {expandedParams.has(`${t.serverId}-${t.name}`) && (
                         <div className="flex flex-col gap-1 mt-2 pl-1 border-l-2 border-[#3c4043]">
-                          {Object.entries(t.inputSchema.properties).map(([pName, pSchema]: [string, any]) => {
-                            const isRequired = t.inputSchema.required?.includes(pName);
+                          {Object.entries(t.inputSchema.properties).map(([pName, pSchema]) => {
+                            const isRequired = t.inputSchema?.required?.includes(pName);
                             return (
                               <div key={pName} className="flex items-center gap-1.5 py-0.5 text-xs flex-wrap">
                                 <span className="font-mono text-[#ff8a80]">{pName}</span>

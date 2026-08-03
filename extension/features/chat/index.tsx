@@ -7,6 +7,7 @@ import { ChatHeader } from './components/ChatHeader';
 import { ChatPluginBar } from './components/ChatPluginBar';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { MessageItem } from './components/MessageItem';
+import type { ChatMessage, ChatMessagePart } from './components/MessageItem';
 import { ChatInput } from './components/ChatInput';
 import { LoadingIndicator } from './components/LoadingIndicator';
 import { createClientTools, captureScreenshot } from './lib/clientTools';
@@ -14,7 +15,7 @@ import { getActiveTabPageContext } from '../../lib/page-context-client';
 import { sendMessage } from '../../lib/messages';
 import { WORKER_URL, MODELS_DATA } from '../../lib/constants';
 import type { ChatThread } from '../../lib/api/threads';
-import type { Tab, ModelEntry } from '../../lib/types';
+import type { PremiumUser, Tab, ModelEntry } from '../../lib/types';
 
 interface Plugin {
   id: string;
@@ -33,7 +34,7 @@ export interface ChatScreenProps {
   handleNewChat: () => void;
   activeThreadTitle: string;
   model: string;
-  user: any;
+  user: PremiumUser | null;
   tabs: Tab[];
   selectedUrls: string[];
   activeTabUrl: string;
@@ -279,10 +280,10 @@ function ActiveThreadChatView(
   const activeTool = useMemo(() => {
     for (const msg of messages) {
       for (const part of msg.parts) {
-        const type = (part as any).type || '';
-        const state = (part as any).state;
+        const type = part.type || '';
+        const state = (part as ChatMessagePart).state;
         if (type.startsWith('tool-') && (state === 'call' || state === 'input-streaming' || state === 'input-available')) {
-          return (part as any).toolName || type.slice(5);
+          return (part as ChatMessagePart).toolName || type.slice(5);
         }
       }
     }
@@ -381,7 +382,7 @@ function ActiveThreadChatView(
       const userMessage = messages[userMessageIndex];
       if (userMessage.role !== 'user') return;
 
-      const userText = ((userMessage.parts.find((part: any) => part.type === 'text') as { text?: string } | undefined)?.text) || '';
+      const userText = ((userMessage.parts.find((part) => part.type === 'text') as { text?: string } | undefined)?.text) || '';
       if (!userText) return;
 
       setMessages(messages.slice(0, userMessageIndex));

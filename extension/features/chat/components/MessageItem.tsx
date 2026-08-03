@@ -6,6 +6,28 @@ import { formatToolName } from '../lib/toolNames';
 import { ReasoningBlock } from './ReasoningBlock';
 import { ToolCallAccordion } from './ToolCallAccordion';
 
+export interface ChatMessagePart {
+  type?: string;
+  text?: string;
+  state?: string;
+  toolCallId?: string;
+  toolName?: string;
+  input?: unknown;
+  args?: unknown;
+  output?: unknown;
+  result?: unknown;
+  error?: unknown;
+  errorMessage?: unknown;
+  message?: unknown;
+  isError?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: string;
+  parts: ChatMessagePart[];
+}
+
 function TruncatedMessage({ text, maxLen = 280 }: { text: string; maxLen?: number }) {
   const [expanded, setExpanded] = useState(false);
   const needsTruncation = text.length > maxLen;
@@ -25,14 +47,14 @@ function TruncatedMessage({ text, maxLen = 280 }: { text: string; maxLen?: numbe
 }
 
 interface MessageItemProps {
-  msg: any;
+  msg: ChatMessage;
   isLast: boolean;
   isStreaming: boolean;
   addToolApprovalResponse: (response: { id: string; approved: boolean }) => void;
   onRegenerate: (messageId: string) => void;
   onEditMessage: (messageId: string, newText: string) => void;
   isLatestAssistant?: boolean;
-  allMessages?: any[];
+  allMessages?: ChatMessage[];
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({
@@ -51,8 +73,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   const handleCopy = () => {
     const text = msg.parts
-      .filter((p: any) => p.type === 'text')
-      .map((p: any) => p.text)
+      .filter((p) => p.type === 'text')
+      .map((p) => p.text)
       .join('\n');
 
     const fallbackCopy = (t: string) => {
@@ -83,11 +105,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       fallbackCopy(text);
     }
   };
-  const hasText = msg.parts.some((p: any) => p.type === 'text' && p.text?.trim());
+  const hasText = msg.parts.some((p) => p.type === 'text' && p.text?.trim());
   const showFeedback =
     msg.role === 'assistant' && hasText && !(isLast && isStreaming);
 
-  const originalText = msg.parts.find((p: any) => p.type === 'text')?.text || '';
+  const originalText = msg.parts.find((p) => p.type === 'text')?.text || '';
   const isChanged = editText !== originalText;
 
   if (isEditing) {
@@ -174,16 +196,16 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             title="Edit prompt"
             onClick={() => {
               setIsEditing(true);
-              setEditText(msg.parts.find((p: any) => p.type === 'text')?.text || '');
+              setEditText(msg.parts.find((p) => p.type === 'text')?.text || '');
             }}
           >
             <Pencil size={13} />
           </button>
         )}
         <div className="bg-[var(--user-bubble-bg,#1e1f20)] text-[var(--text-primary,#e3e3e3)] px-4 py-3 rounded-[18px] leading-normal break-words whitespace-pre-wrap flex-1 min-w-0 overflow-x-hidden">
-          {msg.parts.map((part: any, i: number) => {
+          {msg.parts.map((part, i) => {
             if (part.type === 'text') {
-              return <TruncatedMessage key={i} text={part.text} />;
+              return <TruncatedMessage key={i} text={part.text ?? ''} />;
             }
             return null;
           })}
@@ -194,11 +216,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <div className="self-start w-full text-[var(--text-primary,#e3e3e3)] leading-relaxed flex flex-col">
-      {msg.parts.map((part: any, i: number) => {
+      {msg.parts.map((part, i) => {
         if (part.type === 'text') {
           return (
             <React.Fragment key={i}>
-              {renderMarkdown(part.text)}
+              {renderMarkdown(part.text ?? '')}
             </React.Fragment>
           );
         }
@@ -208,14 +230,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           return (
             <ReasoningBlock
               key={i}
-              text={part.text}
+              text={part.text ?? ''}
               isStreaming={isCurrentPartStreaming}
             />
           );
         }
 
         if (part.state === 'approval-requested') {
-          const approval = getToolApproval(part);
+          const approval = getToolApproval(part as Parameters<typeof getToolApproval>[0]);
           if (!approval) return null;
           return (
             <div

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, AlertCircle, Image, Wrench, Search, Globe, List, FileText, AppWindow, SquareTerminal } from 'lucide-react';
 import { getToolSummary } from '../lib/toolNames';
+import type { ChatMessage, ChatMessagePart } from './MessageItem';
 
 interface ToolCallAccordionProps {
-  part: any;
-  allParts?: any[];
-  allMessages?: any[];
+  part: ChatMessagePart;
+  allParts?: ChatMessagePart[];
+  allMessages?: ChatMessage[];
 }
 
 function getToolIconComponent(rawName: string, state: string) {
@@ -25,7 +26,7 @@ function getToolIconComponent(rawName: string, state: string) {
 export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allParts, allMessages }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const getToolNameFromPart = (p: any) => {
+  const getToolNameFromPart = (p: ChatMessagePart) => {
     if (!p) return '';
     if (p.toolName) return p.toolName;
     if (p.type && p.type.startsWith('tool-')) return p.type.slice(5);
@@ -35,14 +36,14 @@ export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allP
   let toolName = getToolNameFromPart(part);
 
   if (!toolName && allParts) {
-    const found = allParts.find((p: any) => p.toolCallId === part.toolCallId && getToolNameFromPart(p));
+    const found = allParts.find((p) => p.toolCallId === part.toolCallId && getToolNameFromPart(p));
     if (found) toolName = getToolNameFromPart(found);
   }
 
   if (!toolName && allMessages) {
     for (const m of allMessages) {
       if (m.parts) {
-        const found = m.parts.find((p: any) => p.toolCallId === part.toolCallId && getToolNameFromPart(p));
+        const found = m.parts.find((p) => p.toolCallId === part.toolCallId && getToolNameFromPart(p));
         if (found) { toolName = getToolNameFromPart(found); break; }
       }
     }
@@ -54,14 +55,14 @@ export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allP
     part.isError === true ||
     part.error !== undefined ||
     (typeof rawOutput === 'string' && (rawOutput.startsWith('Error') || rawOutput.startsWith('Failed'))) ||
-    (rawOutput && typeof rawOutput === 'object' && ('error' in rawOutput || 'errorMessage' in rawOutput));
+    (rawOutput != null && typeof rawOutput === 'object' && ('error' in rawOutput || 'errorMessage' in rawOutput));
 
   const argsString = JSON.stringify(part.input || part.args || {}, null, 2);
   const resultString = rawOutput !== undefined
     ? (typeof rawOutput === 'object' ? JSON.stringify(rawOutput, null, 2) : String(rawOutput))
     : '';
 
-  const summary = getToolSummary(toolName, part.input || part.args, rawOutput, part.state);
+  const summary = getToolSummary(toolName, part.input || part.args, rawOutput, part.state ?? '');
 
   const isExecuting = part.state !== 'output-available' && part.state !== 'output-error' && !isError;
 
@@ -70,7 +71,7 @@ export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allP
       <div className="group flex items-center gap-2 py-1 bg-transparent cursor-pointer select-none" onClick={() => setIsOpen(!isOpen)}>
         <div className="relative w-3.5 h-3.5 flex items-center justify-center shrink-0">
           <div className="text-[var(--text-muted,#8e8e8e)] flex items-center justify-center opacity-100 transition-opacity duration-150 group-hover:opacity-0">
-            {getToolIconComponent(toolName, isError ? 'output-error' : part.state)}
+            {getToolIconComponent(toolName, isError ? 'output-error' : part.state ?? '')}
           </div>
           <div className="absolute inset-0 text-[var(--text-muted,#8e8e8e)] flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100">
             {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
