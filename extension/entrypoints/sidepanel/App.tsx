@@ -8,7 +8,7 @@ import { useThreads } from '../../lib/useThreads';
 import { useTabs } from '../../lib/useTabs';
 import { useSuggestions } from '../../lib/useSuggestions';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { onTabBroadcast, getActiveTab } from '../../lib/tabs';
+import { onTabBroadcast, getActiveTab, isRestrictedUrl } from '../../lib/tabs';
 import { DEFAULT_MODEL, LS_MODEL, LS_DISABLED_PLUGINS, MODELS_DATA, VALID_MODELS } from '../../lib/constants';
 import { ChatScreen } from '../../features/chat';
 import { ChatSkeleton } from '../../features/chat/components/ChatSkeleton';
@@ -102,7 +102,7 @@ function Shell() {
   }, [refreshActiveTab]);
 
   useEffect(() => {
-    if (activeThreadId && activeTabUrl && !activeTabUrl.startsWith('chrome://')) {
+    if (activeThreadId && activeTabUrl && !isRestrictedUrl(activeTabUrl)) {
       tabThreadMapRef.current.set(activeTabUrl, activeThreadId);
     }
   }, [activeThreadId, activeTabUrl]);

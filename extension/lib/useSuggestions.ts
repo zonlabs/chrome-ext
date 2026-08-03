@@ -3,6 +3,7 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { getJwt } from './auth';
 import { fetchSuggestions } from './api/suggestions';
 import { getActiveTabPageContext } from './page-context-client';
+import { isRestrictedUrl } from './tabs';
 
 const suggestionsCache = new Map<string, string[]>();
 const callTimes: number[] = [];
@@ -17,11 +18,13 @@ function isRateLimited(): boolean {
 
 export function useSuggestions(url: string | null, enabled: boolean) {
   const debouncedUrl = useDebouncedValue(url, 500);
+  const isRestricted = isRestrictedUrl(url) || isRestrictedUrl(debouncedUrl);
 
   const query = useQuery({
     queryKey: ['suggestions', debouncedUrl],
     queryFn: async () => {
       const targetUrl = debouncedUrl ?? '';
+      if (isRestrictedUrl(targetUrl)) return [];
       if (isRateLimited()) {
         const cached = suggestionsCache.get(targetUrl);
         if (cached) return cached;
@@ -34,11 +37,14 @@ export function useSuggestions(url: string | null, enabled: boolean) {
       suggestionsCache.set(targetUrl, suggestions);
       return suggestions;
     },
-    enabled: !!debouncedUrl && enabled,
+    enabled: !!debouncedUrl && !isRestricted && enabled,
     retry: false,
     staleTime: 0,
     placeholderData: () => suggestionsCache.get(debouncedUrl ?? ''),
   });
 
-  return { suggestions: query.data ?? [], isLoading: query.isLoading };
+  return {
+    suggestions: isRestricted ? [] : (query.data ?? []),
+    isLoading: isRestricted ? false : query.isLoading,
+  };
 }

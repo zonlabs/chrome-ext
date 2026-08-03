@@ -1,4 +1,5 @@
 import { SquareArrowOutUpRight } from 'lucide-react';
+import { isRestrictedUrl } from '../../../lib/tabs';
 import '../../../assets/shell.css';
 
 interface WelcomeScreenProps {
@@ -34,7 +35,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 }) => {
   const firstName = user?.name?.split(' ')[0] ?? null;
 
-  const contextLabel = activeTabUrl && !activeTabUrl.startsWith('chrome://')
+  const contextLabel = activeTabUrl && !isRestrictedUrl(activeTabUrl)
     ? getContextLabel(activeTabUrl, activeTabTitle)
     : null;
 

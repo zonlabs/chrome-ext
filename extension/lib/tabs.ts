@@ -37,6 +37,17 @@ function isTabBroadcast(message: unknown): message is TabBroadcast {
   return type === 'tab:activated' || type === 'tab:updated';
 }
 
+export function isRestrictedUrl(url?: string | null): boolean {
+  if (!url) return true;
+  return (
+    url.startsWith('chrome://') ||
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('edge://') ||
+    url.startsWith('about:') ||
+    url.startsWith('devtools://')
+  );
+}
+
 export function onTabBroadcast(handler: (msg: TabBroadcast) => void): () => void {
   const listener = (message: unknown) => {
     if (isTabBroadcast(message)) handler(message);
