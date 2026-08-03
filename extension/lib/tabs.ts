@@ -10,7 +10,7 @@ export interface BrowserTab {
 
 export async function getTabs(): Promise<BrowserTab[]> {
   const response = await sendMessage({ type: 'tabs:get' });
-  if (!('tabs' in response)) return [];
+  if (response.type !== 'tabs') return [];
   return response.tabs.map((tab) => ({ id: tab.tabId ?? 0, url: tab.url, title: tab.title, active: tab.active }));
 }
 

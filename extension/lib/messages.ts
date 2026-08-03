@@ -3,23 +3,17 @@ import type { PremiumUser, Tab } from './types';
 
 export type ExtMessage =
   | { type: 'tabs:get' }
-  | { type: 'config:get' }
   | { type: 'auth:snapshot' }
   | { type: 'auth:clear' }
-  | { type: 'jwt:get' }
   | { type: 'auth:signin' }
   | { type: 'auth:signout' }
-  | { type: 'auth:status' }
   | { type: 'sidePanel:open'; tabId: number };
 
 export type ExtResponse =
-  | { tabs: Tab[] }
-  | { workerUrl: string }
-  | { jwt?: string; user?: PremiumUser }
-  | { jwt?: string }
-  | { user?: PremiumUser }
-  | { user?: PremiumUser; error?: string }
-  | { success: boolean };
+  | { type: 'tabs'; tabs: Tab[] }
+  | { type: 'authSnapshot'; jwt?: string; user?: PremiumUser }
+  | { type: 'authError'; user?: PremiumUser; error?: string }
+  | { type: 'success'; success: boolean };
 
 export type TabBroadcast =
   | { type: 'tab:activated'; tabId: number }

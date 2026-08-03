@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { GOOGLE_CLIENT_ID, WORKER_URL } from '../lib/constants';
-import type { ExtMessage, ExtResponse, TabBroadcast } from '../lib/messages';
+import type { ExtMessage, TabBroadcast } from '../lib/messages';
 
 export default defineBackground(() => {
   browser.tabs.onActivated.addListener(({ tabId }) => {
@@ -28,33 +28,25 @@ export default defineBackground(() => {
             tabId: t.id,
             active: t.active,
           }));
-        sendResponse({ tabs });
+        sendResponse({ type: 'tabs', tabs });
       });
-    } else if (message.type === 'config:get') {
-      sendResponse({ workerUrl: WORKER_URL });
     } else if (message.type === 'auth:snapshot') {
       browser.storage.local.get(['jwt', 'user']).then((result) => {
-        sendResponse({ jwt: result.jwt ?? null, user: result.user ?? null });
+        sendResponse({ type: 'authSnapshot', jwt: result.jwt ?? null, user: result.user ?? null });
       });
     } else if (message.type === 'auth:clear') {
       browser.storage.local.remove(['jwt', 'user']).then(() => {
-        sendResponse({ success: true });
-      });
-    } else if (message.type === 'jwt:get') {
-      browser.storage.local.get('jwt').then((result) => {
-        sendResponse({ jwt: result.jwt ?? null });
+        sendResponse({ type: 'success', success: true });
       });
     } else if (message.type === 'auth:signin') {
-      handleSignIn().then(sendResponse);
+      handleSignIn().then((result) => sendResponse({ type: 'authError', ...result }));
     } else if (message.type === 'auth:signout') {
-      handleSignOut().then(sendResponse);
-    } else if (message.type === 'auth:status') {
-      checkAuthStatus().then(sendResponse);
+      handleSignOut().then((result) => sendResponse({ type: 'success', ...result }));
     } else if (message.type === 'sidePanel:open') {
       if (message.tabId) {
-        browser.sidePanel.open({ tabId: message.tabId }).then(() => sendResponse({ success: true }));
+        browser.sidePanel.open({ tabId: message.tabId }).then(() => sendResponse({ type: 'success', success: true }));
       } else {
-        sendResponse({ success: true });
+        sendResponse({ type: 'success', success: true });
       }
     }
     return true;
@@ -126,9 +118,4 @@ async function handleSignOut(): Promise<{ success: boolean }> {
   }
   await browser.storage.local.remove(['jwt', 'user']);
   return { success: true };
-}
-
-async function checkAuthStatus(): Promise<{ user: any }> {
-  const { user } = await browser.storage.local.get('user');
-  return { user: user || null };
 }

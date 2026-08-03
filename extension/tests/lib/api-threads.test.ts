@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('wxt/browser', () => ({
-  browser: { runtime: { sendMessage: vi.fn(async () => ({ jwt: 'token' })) } },
+  browser: { runtime: { sendMessage: vi.fn(async () => ({ type: 'authSnapshot', jwt: 'token' })) } },
 }));
 
 import { ApiError } from '../../lib/api/client';

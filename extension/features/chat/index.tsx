@@ -137,7 +137,7 @@ function ActiveThreadChatView(
 
   const asyncQuery = useCallback(async () => {
     const snapshot = await sendMessage({ type: 'auth:snapshot' });
-    const token = 'jwt' in snapshot ? (snapshot.jwt ?? '') : '';
+    const token = snapshot.type === 'authSnapshot' ? (snapshot.jwt ?? '') : '';
     return { token };
   }, []);
 
