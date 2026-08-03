@@ -8,11 +8,13 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: PageContextRequest, _sender, sendResponse) => {
       if (message.type === 'get:focusedElement') {
         sendResponse({ data: getFocusedElementInfo() ?? { text: '', placeholder: '', tag: '', selector: '' } });
+        return true;
       }
       if (message.type === 'get:pageContext') {
         sendResponse({ data: getPageContext() });
+        return true;
       }
-      return true;
+      return false;
     });
   },
 });

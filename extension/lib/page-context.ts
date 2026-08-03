@@ -11,12 +11,27 @@ export interface PageSnapshot {
   text: string;
 }
 
+const SENSITIVE_INPUT_TYPES = [
+  'password', 'otp', 'one-time-code', 'cc-number', 'cc-csc', 'cc-exp', 'cc-exp-month', 'cc-exp-year',
+];
+const SENSITIVE_AUTOCOMPLETE = ['current-password', 'new-password', 'one-time-code', 'cc-number', 'cc-csc'];
+const SENSITIVE_INPUT_TYPE_SET = new Set(SENSITIVE_INPUT_TYPES);
+const SENSITIVE_AUTOCOMPLETE_SET = new Set(SENSITIVE_AUTOCOMPLETE);
+
+function isSensitiveInput(el: Element): boolean {
+  const type = (el.getAttribute('type') ?? '').toLowerCase();
+  if (SENSITIVE_INPUT_TYPE_SET.has(type)) return true;
+  const autocomplete = (el.getAttribute('autocomplete') ?? '').toLowerCase();
+  return autocomplete.split(/\s+/).some((token) => SENSITIVE_AUTOCOMPLETE_SET.has(token));
+}
+
 export function getFocusedElementInfo(): FocusedElementInfo | null {
   const el = document.activeElement;
   if (!el || !(el instanceof HTMLElement)) return null;
   const tag = el.tagName.toLowerCase();
   const isInput = tag === 'input' || tag === 'textarea' || el.isContentEditable;
   if (!isInput) return null;
+  if (isSensitiveInput(el)) return null;
   const value = ((el as HTMLInputElement).value ?? el.textContent ?? '').slice(0, 5000);
   const placeholder = (el as HTMLInputElement).placeholder ?? '';
   if (!value && !placeholder) return null;
@@ -66,9 +81,13 @@ export function extractInteractive(): string[] {
 
 export function extractInputs(): string[] {
   const lines: string[] = [];
-  const elements = document.querySelectorAll('input:not([type="hidden"]), textarea, select, [contenteditable="true"]');
+  const sensitiveTypeSelector = SENSITIVE_INPUT_TYPES.map((t) => `:not([type="${t}"])`).join('');
+  const elements = document.querySelectorAll(
+    `input:not([type="hidden"])${sensitiveTypeSelector}, textarea, select, [contenteditable="true"]`,
+  );
   for (const el of elements) {
     if (!isVisible(el)) continue;
+    if (isSensitiveInput(el)) continue;
     const tag = el.tagName.toLowerCase();
     const label = document.querySelector(`label[for="${(el as HTMLElement).id}"]`)?.textContent?.trim()
       || (el as HTMLInputElement).placeholder

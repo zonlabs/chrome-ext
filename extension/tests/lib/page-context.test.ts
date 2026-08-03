@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getPageContext, getCleanedPageText, getFocusedElementInfo } from '../../lib/page-context';
+import { getPageContext, getCleanedPageText, getFocusedElementInfo, extractInputs } from '../../lib/page-context';
 
 function stubRects() {
   Object.defineProperty(Element.prototype, 'getBoundingClientRect', {
@@ -105,5 +105,42 @@ describe('getFocusedElementInfo', () => {
     document.body.innerHTML = `<p>Nothing focused here.</p>`;
 
     expect(getFocusedElementInfo()).toBeNull();
+  });
+
+  it('returns null when the focused input is a password field', () => {
+    document.body.innerHTML = `
+      <input id="pw" type="password" value="hunter2" />
+    `;
+    const input = document.getElementById('pw') as HTMLInputElement;
+    input.focus();
+
+    expect(getFocusedElementInfo()).toBeNull();
+  });
+
+  it('returns null when the focused input has autocomplete="one-time-code"', () => {
+    document.body.innerHTML = `
+      <input id="otp" type="text" autocomplete="one-time-code" />
+    `;
+    const input = document.getElementById('otp') as HTMLInputElement;
+    input.value = '123456';
+    input.focus();
+
+    expect(getFocusedElementInfo()).toBeNull();
+  });
+});
+
+describe('extractInputs', () => {
+  it('skips sensitive inputs but includes normal text inputs', () => {
+    document.body.innerHTML = `
+      <input id="name" type="text" placeholder="Your name" value="Ada" />
+      <input id="pw" type="password" placeholder="Password" value="secret123" />
+      <input id="pw2" type="text" autocomplete="current-password" placeholder="Current password" value="s3cret" />
+    `;
+
+    const lines = extractInputs();
+
+    expect(lines).toContain('  [input] Your name = "Ada"');
+    expect(lines.some((l) => l.includes('secret123'))).toBe(false);
+    expect(lines.some((l) => l.includes('s3cret'))).toBe(false);
   });
 });
