@@ -239,7 +239,7 @@ function AgentGate() {
 
 export default function App() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ChatSkeleton />}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AgentGate />
