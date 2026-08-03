@@ -428,99 +428,101 @@ function ActiveThreadChatView(
 
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
-      <ChatHeader
-        title={activeThreadTitle}
-        activeThreadId={activeThreadId}
-        threads={threads}
-        setActiveThreadId={setActiveThreadId}
-        showHistoryPopup={showHistoryPopup}
-        setShowHistoryPopup={setShowHistoryPopup}
-        historyRef={historyRef}
-        onNewChat={handleNewChat}
-        onDeleteThread={handleDeleteThread}
-        user={user}
-        onSignIn={onSignIn}
-        signingIn={signingIn}
-        onSignOut={onSignOut}
-        onOpenPlugins={onOpenPlugins}
-      />
-      <div id="messages" className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-4 py-4">
-        {messages.length === 0 ? (
-          <WelcomeScreen
-            user={user}
-            onSuggestionClick={handleSuggestionClick}
-            onSignIn={onSignIn}
-            signingIn={signingIn}
-            activeTabUrl={activeTabUrl}
-            activeTabTitle={activeTabTitle}
-            llmSuggestions={activeTabSuggestions}
-            suggestionsLoading={suggestionsLoading}
-          />
-        ) : (
-          messages.map((msg, idx) => (
-            <MessageItem
-              key={msg.id}
-              msg={msg}
-              isLast={idx === messages.length - 1}
-              isStreaming={isStreaming}
-              addToolApprovalResponse={addToolApprovalResponse}
-              onRegenerate={handleRegenerateMessage}
-              onEditMessage={handleEditMessage}
-              isLatestAssistant={idx === latestAssistantIdx}
-              allMessages={messages}
+      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-3xl mx-auto">
+        <ChatHeader
+          title={activeThreadTitle}
+          activeThreadId={activeThreadId}
+          threads={threads}
+          setActiveThreadId={setActiveThreadId}
+          showHistoryPopup={showHistoryPopup}
+          setShowHistoryPopup={setShowHistoryPopup}
+          historyRef={historyRef}
+          onNewChat={handleNewChat}
+          onDeleteThread={handleDeleteThread}
+          user={user}
+          onSignIn={onSignIn}
+          signingIn={signingIn}
+          onSignOut={onSignOut}
+          onOpenPlugins={onOpenPlugins}
+        />
+        <div id="messages" className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-4 py-4">
+          {messages.length === 0 ? (
+            <WelcomeScreen
+              user={user}
+              onSuggestionClick={handleSuggestionClick}
+              onSignIn={onSignIn}
+              signingIn={signingIn}
+              activeTabUrl={activeTabUrl}
+              activeTabTitle={activeTabTitle}
+              llmSuggestions={activeTabSuggestions}
+              suggestionsLoading={suggestionsLoading}
             />
-          ))
-        )}
+          ) : (
+            messages.map((msg, idx) => (
+              <MessageItem
+                key={msg.id}
+                msg={msg}
+                isLast={idx === messages.length - 1}
+                isStreaming={isStreaming}
+                addToolApprovalResponse={addToolApprovalResponse}
+                onRegenerate={handleRegenerateMessage}
+                onEditMessage={handleEditMessage}
+                isLatestAssistant={idx === latestAssistantIdx}
+                allMessages={messages}
+              />
+            ))
+          )}
 
-        {(isStreaming || activeTool) && <LoadingIndicator />}
+          {(isStreaming || activeTool) && <LoadingIndicator />}
 
-        <div ref={messagesEndRef} />
-      </div>
-
-      <ChatPluginBar user={user} availablePlugins={availablePlugins} disabledPlugins={disabledPlugins} onTogglePlugin={onTogglePlugin} />
-
-      <ChatInput
-        inputValue={inputValue}
-        setInputValue={setInputValue}
-        inputRef={inputRef}
-        isStreaming={isStreaming}
-        onSubmit={() => void handleSubmit()}
-        onKeyDown={handleKeyDown}
-        onStop={handleStop}
-        showPopup={showPopup}
-        setShowPopup={setShowPopup}
-        showSelected={showSelected}
-        setShowSelected={setShowSelected}
-        selectedPanelRef={selectedPanelRef}
-        attachPopupRef={attachPopupRef}
-        tabs={tabs}
-        selectedUrls={selectedUrls}
-        activeTabUrl={activeTabUrl}
-        onToggleUrl={onToggleUrl}
-        showModelPopup={showModelPopup}
-        setShowModelPopup={setShowModelPopup}
-        modelDropdownRef={modelDropdownRef}
-        model={model}
-        modelsData={MODELS_DATA}
-        selectedModelLabel={selectedModelLabel}
-        selectedModelIcon={selectedModelIcon}
-        onSelectModel={onSelectModel}
-      />
-
-      {toastError && (
-        <div className="chat-error-toast">
-          <div className="chat-error-toast-icon">
-            <CircleX size={16} />
-          </div>
-          <div className="chat-error-toast-content">
-            <div className="chat-error-toast-title">Error</div>
-            <div className="chat-error-toast-message">{toastError}</div>
-          </div>
-          <button className="chat-error-toast-close" onClick={handleDismissToast} aria-label="Dismiss">
-            <X size={14} />
-          </button>
+          <div ref={messagesEndRef} />
         </div>
-      )}
+
+        <ChatPluginBar user={user} availablePlugins={availablePlugins} disabledPlugins={disabledPlugins} onTogglePlugin={onTogglePlugin} />
+
+        <ChatInput
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          inputRef={inputRef}
+          isStreaming={isStreaming}
+          onSubmit={() => void handleSubmit()}
+          onKeyDown={handleKeyDown}
+          onStop={handleStop}
+          showPopup={showPopup}
+          setShowPopup={setShowPopup}
+          showSelected={showSelected}
+          setShowSelected={setShowSelected}
+          selectedPanelRef={selectedPanelRef}
+          attachPopupRef={attachPopupRef}
+          tabs={tabs}
+          selectedUrls={selectedUrls}
+          activeTabUrl={activeTabUrl}
+          onToggleUrl={onToggleUrl}
+          showModelPopup={showModelPopup}
+          setShowModelPopup={setShowModelPopup}
+          modelDropdownRef={modelDropdownRef}
+          model={model}
+          modelsData={MODELS_DATA}
+          selectedModelLabel={selectedModelLabel}
+          selectedModelIcon={selectedModelIcon}
+          onSelectModel={onSelectModel}
+        />
+
+        {toastError && (
+          <div className="chat-error-toast">
+            <div className="chat-error-toast-icon">
+              <CircleX size={16} />
+            </div>
+            <div className="chat-error-toast-content">
+              <div className="chat-error-toast-title">Error</div>
+              <div className="chat-error-toast-message">{toastError}</div>
+            </div>
+            <button className="chat-error-toast-close" onClick={handleDismissToast} aria-label="Dismiss">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -528,66 +530,68 @@ function ActiveThreadChatView(
 function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onSubmit: () => void }) {
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
-      <ChatHeader
-        activeThreadId={null}
-        threads={props.threads}
-        setActiveThreadId={props.setActiveThreadId}
-        showHistoryPopup={props.showHistoryPopup}
-        setShowHistoryPopup={props.setShowHistoryPopup}
-        historyRef={props.historyRef}
-        onNewChat={props.handleNewChat}
-        onDeleteThread={props.handleDeleteThread}
-        user={props.user}
-        onSignIn={props.onSignIn}
-        signingIn={props.signingIn}
-        onSignOut={props.onSignOut}
-        onOpenPlugins={props.onOpenPlugins}
-      />
-      <div id="messages" className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-4 py-4">
-        <WelcomeScreen
+      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-3xl mx-auto">
+        <ChatHeader
+          activeThreadId={null}
+          threads={props.threads}
+          setActiveThreadId={props.setActiveThreadId}
+          showHistoryPopup={props.showHistoryPopup}
+          setShowHistoryPopup={props.setShowHistoryPopup}
+          historyRef={props.historyRef}
+          onNewChat={props.handleNewChat}
+          onDeleteThread={props.handleDeleteThread}
           user={props.user}
-          onSuggestionClick={props.setInputValue}
           onSignIn={props.onSignIn}
           signingIn={props.signingIn}
+          onSignOut={props.onSignOut}
+          onOpenPlugins={props.onOpenPlugins}
+        />
+        <div id="messages" className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-4 py-4">
+          <WelcomeScreen
+            user={props.user}
+            onSuggestionClick={props.setInputValue}
+            onSignIn={props.onSignIn}
+            signingIn={props.signingIn}
+            activeTabUrl={props.activeTabUrl}
+            activeTabTitle={props.activeTabTitle}
+            llmSuggestions={props.activeTabSuggestions}
+            suggestionsLoading={props.suggestionsLoading}
+          />
+        </div>
+        <ChatPluginBar user={props.user} availablePlugins={props.availablePlugins} disabledPlugins={props.disabledPlugins} onTogglePlugin={props.onTogglePlugin} />
+        <ChatInput
+          inputValue={props.inputValue}
+          setInputValue={props.setInputValue}
+          inputRef={props.inputRef}
+          isStreaming={props.isCreating}
+          onSubmit={props.onSubmit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              props.onSubmit();
+            }
+          }}
+          showPopup={props.showPopup}
+          setShowPopup={props.setShowPopup}
+          attachPopupRef={props.attachPopupRef}
+          tabs={props.tabs}
+          selectedUrls={props.selectedUrls}
           activeTabUrl={props.activeTabUrl}
-          activeTabTitle={props.activeTabTitle}
-          llmSuggestions={props.activeTabSuggestions}
-          suggestionsLoading={props.suggestionsLoading}
+          onToggleUrl={props.onToggleUrl}
+          showSelected={props.showSelected}
+          setShowSelected={props.setShowSelected}
+          selectedPanelRef={props.selectedPanelRef}
+          showModelPopup={props.showModelPopup}
+          setShowModelPopup={props.setShowModelPopup}
+          modelDropdownRef={props.modelDropdownRef}
+          model={props.model}
+          modelsData={MODELS_DATA}
+          selectedModelLabel={props.selectedModelLabel}
+          selectedModelIcon={props.selectedModelIcon}
+          onSelectModel={props.onSelectModel}
+          onStop={() => {}}
         />
       </div>
-      <ChatPluginBar user={props.user} availablePlugins={props.availablePlugins} disabledPlugins={props.disabledPlugins} onTogglePlugin={props.onTogglePlugin} />
-      <ChatInput
-        inputValue={props.inputValue}
-        setInputValue={props.setInputValue}
-        inputRef={props.inputRef}
-        isStreaming={props.isCreating}
-        onSubmit={props.onSubmit}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            props.onSubmit();
-          }
-        }}
-        showPopup={props.showPopup}
-        setShowPopup={props.setShowPopup}
-        attachPopupRef={props.attachPopupRef}
-        tabs={props.tabs}
-        selectedUrls={props.selectedUrls}
-        activeTabUrl={props.activeTabUrl}
-        onToggleUrl={props.onToggleUrl}
-        showSelected={props.showSelected}
-        setShowSelected={props.setShowSelected}
-        selectedPanelRef={props.selectedPanelRef}
-        showModelPopup={props.showModelPopup}
-        setShowModelPopup={props.setShowModelPopup}
-        modelDropdownRef={props.modelDropdownRef}
-        model={props.model}
-        modelsData={MODELS_DATA}
-        selectedModelLabel={props.selectedModelLabel}
-        selectedModelIcon={props.selectedModelIcon}
-        onSelectModel={props.onSelectModel}
-        onStop={() => {}}
-      />
     </div>
   );
 }
