@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
-import { CircleX, X } from 'lucide-react';
+
 
 import { ChatHeader } from './components/ChatHeader';
 import { ChatPluginBar } from './components/ChatPluginBar';
@@ -210,7 +210,16 @@ function ActiveThreadChatView(
     [model, enabledPluginsString],
   );
 
-  const { messages, sendMessage: sendChatMessage, addToolApprovalResponse, status, stop, setMessages, error: chatError } = useAgentChat({
+  const {
+    messages,
+    sendMessage: sendChatMessage,
+    addToolApprovalResponse,
+    status,
+    stop,
+    setMessages,
+    error: chatError,
+    connectionError,
+  } = useAgentChat({
     agent,
     body: chatBody,
     onToolCall: handleToolCall,
@@ -220,6 +229,11 @@ function ActiveThreadChatView(
     experimental_throttle: 50,
   });
 
+  const rawErrorMessage = connectionError?.message || (chatError instanceof Error ? chatError.message : (typeof chatError === 'string' ? chatError : null));
+  const displayError = (chatError || connectionError)
+    ? (rawErrorMessage?.trim() || 'An error occurred while processing your request. Please try again.')
+    : null;
+
   useEffect(() => {
     if (!initialRequest || consumedInitialRequestRef.current === initialRequest) return;
 
@@ -228,8 +242,6 @@ function ActiveThreadChatView(
     onInitialMessageSent?.();
     sendChatMessage({ text: initialRequest.text });
   }, [initialRequest, onInitialMessageSent, sendChatMessage]);
-
-  const [toastError, setToastError] = useState<string | null>(null);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -243,20 +255,6 @@ function ActiveThreadChatView(
     agent.addEventListener('message', handleMessage);
     return () => agent.removeEventListener('message', handleMessage);
   }, [agent, updateActiveThreadTitle, activeThreadId]);
-
-  useEffect(() => {
-    if (chatError) {
-      setToastError(chatError instanceof Error ? chatError.message : String(chatError));
-      const timer = setTimeout(() => {
-        setToastError(null);
-      }, 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [chatError]);
-
-  const handleDismissToast = useCallback(() => {
-    setToastError(null);
-  }, []);
 
   const popoutMode = new URLSearchParams(window.location.search).has('popout');
 
@@ -445,7 +443,7 @@ function ActiveThreadChatView(
           onSignOut={onSignOut}
           onOpenPlugins={onOpenPlugins}
         />
-        <div id="messages" className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-4 py-4">
+        <div id="messages" className="flex flex-1 min-h-0 flex-col gap-3.5 overflow-y-auto px-4 py-2">
           {messages.length === 0 ? (
             <WelcomeScreen
               user={user}
@@ -474,6 +472,14 @@ function ActiveThreadChatView(
           )}
 
           {(isStreaming || activeTool) && <LoadingIndicator />}
+
+          {displayError && (
+            <div className="message assistant">
+              <div className="message-content text-error-text">
+                {displayError}
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>
@@ -507,21 +513,6 @@ function ActiveThreadChatView(
           selectedModelIcon={selectedModelIcon}
           onSelectModel={onSelectModel}
         />
-
-        {toastError && (
-          <div className="chat-error-toast">
-            <div className="chat-error-toast-icon">
-              <CircleX size={16} />
-            </div>
-            <div className="chat-error-toast-content">
-              <div className="chat-error-toast-title">Error</div>
-              <div className="chat-error-toast-message">{toastError}</div>
-            </div>
-            <button className="chat-error-toast-close" onClick={handleDismissToast} aria-label="Dismiss">
-              <X size={14} />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -546,7 +537,7 @@ function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onS
           onSignOut={props.onSignOut}
           onOpenPlugins={props.onOpenPlugins}
         />
-        <div id="messages" className="flex flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-4 py-4">
+        <div id="messages" className="flex flex-1 min-h-0 flex-col gap-3.5 overflow-y-auto px-4 py-2">
           <WelcomeScreen
             user={props.user}
             onSuggestionClick={props.setInputValue}

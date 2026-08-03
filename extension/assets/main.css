@@ -14,7 +14,7 @@
   --color-code-bg: #0f0f0f;
   --color-user-bubble-bg: #1e1f20;
   --color-error-bg: #3c1e1e;
-  --color-error-text: #f2b8b5;
+  --color-error-text: #e06c75;
   --color-red: #ea4335;
 }
 
@@ -32,7 +32,7 @@
   --code-bg: #0f0f0f;
   --user-bubble-bg: #1e1f20;
   --error-bg: #3c1e1e;
-  --error-text: #f2b8b5;
+  --error-text: #e06c75;
 }
 
 html,
