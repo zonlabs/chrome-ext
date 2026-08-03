@@ -10,9 +10,9 @@ import { useSuggestions } from '../../lib/useSuggestions';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { onTabBroadcast, getActiveTab } from '../../lib/tabs';
 import { DEFAULT_MODEL, LS_MODEL, LS_DISABLED_PLUGINS, MODELS_DATA, VALID_MODELS } from '../../lib/constants';
-import { ChatView } from '../../features/chat/components/ChatView';
+import { ChatScreen } from '../../features/chat';
 import { ChatSkeleton } from '../../features/chat/components/ChatSkeleton';
-import { PluginsScreen } from '../../features/plugins/components/PluginsScreen';
+import { PluginsScreen } from '../../features/plugins';
 import type { ChatThread } from '../../lib/api/threads';
 import type { Tab } from '../../lib/types';
 
@@ -221,7 +221,7 @@ function Shell() {
 
   return (
     <Suspense fallback={<ChatSkeleton />}>
-      <ChatView {...chatProps} />
+      <ChatScreen {...chatProps} />
     </Suspense>
   );
 }

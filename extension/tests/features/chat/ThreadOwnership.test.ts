@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 const threadsHook = readFileSync(new URL('../../../lib/useThreads.ts', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../../../entrypoints/sidepanel/App.tsx', import.meta.url), 'utf8');
 const authProvider = readFileSync(new URL('../../../lib/auth-provider.tsx', import.meta.url), 'utf8');
-const chatView = readFileSync(new URL('../../../features/chat/components/ChatView.tsx', import.meta.url), 'utf8');
+const chatView = readFileSync(new URL('../../../features/chat/index.tsx', import.meta.url), 'utf8');
 const chatPluginBar = readFileSync(new URL('../../../features/chat/components/ChatPluginBar.tsx', import.meta.url), 'utf8');
 const clientTools = readFileSync(new URL('../../../features/chat/lib/clientTools.ts', import.meta.url), 'utf8');
 
@@ -35,7 +35,7 @@ describe('thread ownership', () => {
   });
 
   it('the empty chat uses the full input and preserves the pending first send', () => {
-    const shell = chatView.slice(chatView.indexOf('export function ChatView'));
+    const shell = chatView.slice(chatView.indexOf('export function ChatScreen'));
     expect(shell).toMatch(/const \[isCreating, setIsCreating\] = useState\(false\);/);
     expect(shell).toMatch(/const creatingThreadRef = useRef\(false\);/);
     expect(shell).toMatch(/if \(creatingThreadRef\.current\) return;/);
@@ -46,7 +46,7 @@ describe('thread ownership', () => {
   });
 
   it('the chat shell is not remounted when its server thread id changes', () => {
-    expect(app).not.toMatch(/<ChatView\s+key=\{activeThreadId\}/);
+    expect(app).not.toMatch(/<ChatScreen\s+key=\{activeThreadId\}/);
   });
 
   it('the empty thread shell retains navigation chrome and captures first-message context', () => {

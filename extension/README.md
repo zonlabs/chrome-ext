@@ -51,8 +51,9 @@ extension/
 |-- components/             - Shared components
 |   `-- Favicon.tsx
 |-- features/
-|   |-- chat/               - Chat feature components & utils
-|   `-- plugins/            - MCP plugin management UI
+|   |-- chat/               - Chat feature (index.tsx = chat screen)
+|   |   `-- components/     - Chat UI components
+|   `-- plugins/            - MCP plugin management UI (index.tsx = screen)
 |-- assets/                 - Tailwind v4 + scoped CSS
 |   |-- main.css            - Tailwind entry
 |   |-- shell.css           - Header, history popup, welcome

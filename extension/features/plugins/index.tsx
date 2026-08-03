@@ -13,9 +13,9 @@ import {
   Loader,
   Lock,
 } from 'lucide-react';
-import { usePlugins } from '../../../lib/agent';
-import { WORKER_URL } from '../../../lib/constants';
-import '../../../assets/plugins.css';
+import { usePlugins } from '../../lib/agent';
+import { WORKER_URL } from '../../lib/constants';
+import '../../assets/plugins.css';
 
 const BUILTIN_PLUGINS = [
   {

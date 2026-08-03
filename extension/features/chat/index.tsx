@@ -3,19 +3,19 @@ import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
 import { CircleX, X } from 'lucide-react';
 
-import { ChatHeader } from './ChatHeader';
-import { ChatPluginBar } from './ChatPluginBar';
-import { WelcomeScreen } from './WelcomeScreen';
-import { MessageItem } from './MessageItem';
-import { ChatInput } from './ChatInput';
-import { LoadingIndicator } from './LoadingIndicator';
-import { createClientTools, captureScreenshot } from '../lib/clientTools';
-import { getActiveTabPageContext } from '../../../lib/page-context-client';
-import { sendMessage } from '../../../lib/messages';
+import { ChatHeader } from './components/ChatHeader';
+import { ChatPluginBar } from './components/ChatPluginBar';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { MessageItem } from './components/MessageItem';
+import { ChatInput } from './components/ChatInput';
+import { LoadingIndicator } from './components/LoadingIndicator';
+import { createClientTools, captureScreenshot } from './lib/clientTools';
+import { getActiveTabPageContext } from '../../lib/page-context-client';
+import { sendMessage } from '../../lib/messages';
 import { browser } from 'wxt/browser';
-import { WORKER_URL, MODELS_DATA } from '../../../lib/constants';
-import type { ChatThread } from '../../../lib/api/threads';
-import type { Tab, ModelEntry } from '../../../lib/types';
+import { WORKER_URL, MODELS_DATA } from '../../lib/constants';
+import type { ChatThread } from '../../lib/api/threads';
+import type { Tab, ModelEntry } from '../../lib/types';
 
 interface Plugin {
   id: string;
@@ -24,7 +24,7 @@ interface Plugin {
   state?: string;
 }
 
-export interface ChatViewProps {
+export interface ChatScreenProps {
   activeThreadId: string | null;
   setActiveThreadId: (id: string | null) => void;
   threads: ChatThread[];
@@ -76,7 +76,7 @@ type InitialMessageRequest = {
 };
 
 function ActiveThreadChatView(
-  props: ChatViewProps & { initialRequest?: InitialMessageRequest; onInitialMessageSent?: () => void },
+  props: ChatScreenProps & { initialRequest?: InitialMessageRequest; onInitialMessageSent?: () => void },
 ) {
   const {
     activeThreadId,
@@ -525,7 +525,7 @@ function ActiveThreadChatView(
   );
 }
 
-function EmptyThreadChatView(props: ChatViewProps & { isCreating: boolean; onSubmit: () => void }) {
+function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; onSubmit: () => void }) {
   return (
     <>
       <ChatHeader
@@ -592,7 +592,7 @@ function EmptyThreadChatView(props: ChatViewProps & { isCreating: boolean; onSub
   );
 }
 
-export function ChatView(props: ChatViewProps) {
+export function ChatScreen(props: ChatScreenProps) {
   const [pendingInitialMessage, setPendingInitialMessage] = useState<InitialMessageRequest | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const creatingThreadRef = useRef(false);
