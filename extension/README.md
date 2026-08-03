@@ -45,9 +45,7 @@ extension/
 |       `-- suggestions.ts  - Suggestion API
 |-- hooks/                  - Generic hooks
 |   |-- useLocalStorage.ts
-|   |-- useOutsideClick.ts
 |   |-- useDebouncedValue.ts
-|   `-- usePopout.ts
 |-- components/             - Shared components
 |   `-- Favicon.tsx
 |-- features/

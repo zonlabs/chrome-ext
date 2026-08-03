@@ -11,7 +11,7 @@ vi.mock('wxt/browser', () => ({
 }));
 
 import { browser } from 'wxt/browser';
-import { sendMessage, sendTabBroadcastMessage } from '../../lib/messages';
+import { sendMessage } from '../../lib/messages';
 import { getTabs } from '../../lib/tabs';
 
 const sendMessageMock = vi.mocked(browser.runtime.sendMessage);
@@ -32,12 +32,6 @@ describe('runtime messages', () => {
 
     expect(sendMessageMock).toHaveBeenCalledWith({ type: 'auth:snapshot' });
     expect(result).toEqual({ success: true, echo: { type: 'auth:snapshot' } });
-  });
-
-  it('sendTabBroadcastMessage forwards tab broadcast payloads', async () => {
-    await sendTabBroadcastMessage({ type: 'tab:activated', tabId: 7 });
-
-    expect(sendMessageMock).toHaveBeenCalledWith({ type: 'tab:activated', tabId: 7 });
   });
 
   it('getTabs maps the tabs:get response into browser tab records', async () => {

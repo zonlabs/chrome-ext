@@ -12,7 +12,6 @@ import { LoadingIndicator } from './components/LoadingIndicator';
 import { createClientTools, captureScreenshot } from './lib/clientTools';
 import { getActiveTabPageContext } from '../../lib/page-context-client';
 import { sendMessage } from '../../lib/messages';
-import { browser } from 'wxt/browser';
 import { WORKER_URL, MODELS_DATA } from '../../lib/constants';
 import type { ChatThread } from '../../lib/api/threads';
 import type { Tab, ModelEntry } from '../../lib/types';
@@ -255,29 +254,6 @@ function ActiveThreadChatView(
     agent.addEventListener('message', handleMessage);
     return () => agent.removeEventListener('message', handleMessage);
   }, [agent, updateActiveThreadTitle, activeThreadId]);
-
-  const popoutMode = new URLSearchParams(window.location.search).has('popout');
-
-  const handleTogglePopout = useCallback(() => {
-    if (popoutMode) {
-      const params = new URLSearchParams(window.location.search);
-      const tabId = parseInt(params.get('tabId') || '0', 10);
-      if (tabId) {
-        void sendMessage({ type: 'sidePanel:open', tabId }).then(() => {
-          window.close();
-        });
-      } else {
-        window.close();
-      }
-    } else {
-      void browser.tabs.query({ active: true, currentWindow: true }).then((tabsList) => {
-        const tabId = tabsList[0]?.id || 0;
-        const url = browser.runtime.getURL(`/sidepanel.html?popout=true&tabId=${tabId}`);
-        window.open(url, 'Obot', 'width=450,height=600,menubar=no,toolbar=no,location=no,status=no');
-        window.close();
-      });
-    }
-  }, [popoutMode]);
 
   const [pendingEdit, setPendingEdit] = useState<{ text: string } | null>(null);
 

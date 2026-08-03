@@ -4,7 +4,6 @@ export const WORKER_URL = (import.meta.env.WXT_WORKER_URL as string | undefined)
 
 export const GOOGLE_CLIENT_ID = '4924083673-9u1npacjm2egsp8ebsnsrd75gpn5qqlg.apps.googleusercontent.com';
 
-export const LS_THREADS = 'obot_chats';
 export const LS_ACTIVE = 'obot_active_thread_id';
 export const LS_DISABLED_PLUGINS = 'obot_disabled_plugins';
 export const LS_MODEL = 'obot_model';
