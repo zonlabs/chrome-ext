@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getAuthUser, signIn as signInRequest, signOut as signOutRequest } from './auth';
+import { LS_ACTIVE } from './constants';
 import type { PremiumUser } from './types';
 
 export interface AuthContextValue {
@@ -48,7 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await signOutRequest();
-    localStorage.clear();
+    // Only remove session-scoped keys; preserve model/plugin preferences (LS_MODEL, LS_DISABLED_PLUGINS).
+    localStorage.removeItem(LS_ACTIVE);
     window.location.reload();
   }, []);
 
