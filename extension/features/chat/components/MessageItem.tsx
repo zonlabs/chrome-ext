@@ -165,13 +165,37 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     );
   }
 
+  if (msg.role === 'user') {
+    return (
+      <div className="group flex items-center gap-1.5 self-end max-w-[85%]">
+        {!isEditing && (
+          <button
+            className="opacity-0 group-hover:opacity-100 p-1.5 text-[var(--text-muted,#8e8e8e)] hover:text-[var(--text-primary,#e3e3e3)] hover:bg-[var(--bg-hover,#2a2b2d)] rounded-full transition-all cursor-pointer border-0 bg-transparent shrink-0"
+            title="Edit prompt"
+            onClick={() => {
+              setIsEditing(true);
+              setEditText(msg.parts.find((p: any) => p.type === 'text')?.text || '');
+            }}
+          >
+            <Pencil size={13} />
+          </button>
+        )}
+        <div className="bg-[var(--user-bubble-bg,#1e1f20)] text-[var(--text-primary,#e3e3e3)] px-4 py-3 rounded-[18px] leading-normal break-words whitespace-pre-wrap flex-1 min-w-0 overflow-x-hidden">
+          {msg.parts.map((part: any, i: number) => {
+            if (part.type === 'text') {
+              return <TruncatedMessage key={i} text={part.text} />;
+            }
+            return null;
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`message ${msg.role}`}>
+    <div className="self-start w-full text-[var(--text-primary,#e3e3e3)] leading-relaxed flex flex-col">
       {msg.parts.map((part: any, i: number) => {
         if (part.type === 'text') {
-          if (msg.role === 'user') {
-            return <TruncatedMessage key={i} text={part.text} />;
-          }
           return (
             <React.Fragment key={i}>
               {renderMarkdown(part.text)}
@@ -249,33 +273,30 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     color: 'var(--text-muted)',
                   }}
                 >
-                  Parameters
+                  Arguments
                 </div>
-                {Object.entries(part.input || {}).map(([key, val]) => (
-                  <div
-                    key={key}
-                    style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}
-                  >
-                    <span style={{ fontFamily: 'monospace', color: 'var(--error-text, #f2b8b5)' }}>
-                      {key}:
-                    </span>
-                    <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>
-                      {String(val)}
-                    </span>
-                  </div>
-                ))}
+                <pre
+                  style={{
+                    margin: 0,
+                    fontSize: '11px',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {JSON.stringify(part.input || part.args || {}, null, 2)}
+                </pre>
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
                 <button
                   style={{
                     background: 'transparent',
-                    border: '1px solid #444749',
-                    color: '#ff6b6b',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
                     padding: '6px 14px',
                     borderRadius: '16px',
                     fontSize: '12px',
-                    fontWeight: 500,
                     cursor: 'pointer',
                     transition: 'background-color 0.15s',
                   }}
@@ -331,31 +352,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </button>
           <button className="bg-transparent border-none cursor-pointer w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]" title="More">
             <MoreVertical size={16} />
-          </button>
-        </div>
-      )}
-
-      {msg.role === 'user' && !isEditing && (
-        <div className="user-action-row">
-          <button
-            className="bg-transparent border-none cursor-pointer w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-            title="Edit prompt"
-            onClick={() => {
-              setIsEditing(true);
-              setEditText(msg.parts.find((p: any) => p.type === 'text')?.text || '');
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '4px',
-              borderRadius: '50%',
-            }}
-          >
-            <Pencil size={12} style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
       )}

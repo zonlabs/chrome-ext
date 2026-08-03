@@ -1,6 +1,5 @@
 import React from 'react';
 import { CodeBlock } from '../components/CodeBlock';
-import '../../../assets/messages.css';
 
 function parseInlineStyles(text: string, lineKey: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
@@ -101,5 +100,9 @@ export function renderMarkdown(text: string): React.ReactNode {
     elements.push(...renderTextBlocks(textSection, `sec-${sectionIdx++}`));
   }
 
-  return <div className="message-content">{elements}</div>;
+  return (
+    <div className="message-content w-full [&_p]:mb-3 last:[&_p]:mb-0 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[var(--text-primary,#e3e3e3)] [&_h3]:mt-4 [&_h3]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-[var(--text-primary,#e3e3e3)] [&_h4]:mt-3 [&_h4]:mb-1.5 [&_ul]:mb-3 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:mb-3 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:mb-1.5 [&_code]:bg-[#2d2f31] [&_code]:text-[#f2b8b5] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono [&_code]:text-[11px] [&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0">
+      {elements}
+    </div>
+  );
 }

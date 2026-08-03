@@ -3,7 +3,6 @@ import { Plus, ChevronDown, Check, ArrowUp, Square, X } from 'lucide-react';
 import { Tab, ModelTier, ModelEntry } from '../../../lib/types';
 import { ModelSelector } from './ModelSelector';
 import { Favicon, safeUrl } from '../../../components/Favicon';
-import '../../../assets/input.css';
 
 const CircleCheckIcon = () => (
   <div
@@ -96,7 +95,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const selectedTabs = tabs.filter((t: any) => selectedUrls.includes(t.url));
 
   return (
-    <div id="input-outer-container" className={`${showSelected && selectedUrls.length > 0 ? 'expanded' : ''} ${isStreaming ? 'streaming' : ''}`}>
+    <div
+      className={`shrink-0 mx-2.5 mb-2.5 rounded-xl border border-transparent ${
+        isStreaming ? 'animate-[border-shimmer_2s_linear_infinite]' : ''
+      }`}
+      style={{
+        background: isStreaming
+          ? 'linear-gradient(var(--bg-primary, #131314), var(--bg-primary, #131314)) padding-box, linear-gradient(to right, #ea4335, #000000, #ea4335) border-box'
+          : 'linear-gradient(var(--bg-primary, #131314), var(--bg-primary, #131314)) padding-box, linear-gradient(to right, #ea4335, #000000) border-box',
+        backgroundSize: isStreaming ? '100% 100%, 200% 100%' : '100% 100%, 100% 100%',
+      }}
+    >
       {selectedUrls.length > 0 && (
         <div className="flex items-center justify-between px-2.5 pt-2 pb-1 min-h-8">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -117,7 +126,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div id="selected-detail-collapsible" className="grid grid-rows-[0fr] min-h-0 transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)]">
+      <div
+        ref={selectedPanelRef}
+        className={`grid min-h-0 transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
+          showSelected && selectedUrls.length > 0 ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        }`}
+      >
         <div id="selected-detail-collapsible-inner" className="min-h-0 overflow-hidden">
           {showSelected && selectedUrls.length > 0 && (
             <>

@@ -76,7 +76,11 @@ export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allP
             {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </div>
         </div>
-        <span className={`truncate font-medium text-[12.5px] text-[var(--text-muted,#8e8e8e)] font-[inherit] transition-colors duration-150 group-hover:text-[var(--text-secondary,#c4c7c5)] ${isExecuting ? 'tool-call-shimmer' : ''}`}>
+        <span
+          className={`truncate font-medium text-[12.5px] font-[inherit] transition-colors duration-150 group-hover:text-[var(--text-secondary,#c4c7c5)] ${
+            isExecuting ? 'tool-call-shimmer' : 'text-[var(--text-muted,#8e8e8e)]'
+          }`}
+        >
           {summary}
         </span>
       </div>
@@ -95,7 +99,12 @@ export const ToolCallAccordion: React.FC<ToolCallAccordionProps> = ({ part, allP
             <div>
               <div className="font-semibold text-[var(--text-muted,#8e8e8e)] mb-1 text-[11px] uppercase tracking-[0.03em]">Result</div>
               <pre className="m-0 p-2.5 rounded-md bg-[#0f0f11] text-[#d4d4d4] font-['JetBrains_Mono',Consolas,Monaco,monospace] text-[11px] overflow-auto max-h-[180px] whitespace-pre-wrap break-all border border-[rgba(255,255,255,0.03)]" style={isError ? { color: '#ff6b6b' } : undefined}>
-                {resultString || 'Error executing tool.'}
+                {(() => {
+                  if (resultString) return resultString;
+                  const err = part.error ?? part.errorMessage ?? part.message;
+                  if (err) return typeof err === 'string' ? err : JSON.stringify(err, null, 2);
+                  return `Error executing tool${part.state ? ` (state: ${part.state})` : '.'}`;
+                })()}
               </pre>
             </div>
           )}

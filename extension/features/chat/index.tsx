@@ -474,7 +474,7 @@ function ActiveThreadChatView(
           {(isStreaming || activeTool) && <LoadingIndicator />}
 
           {displayError && (
-            <div className="message assistant">
+            <div className="self-start w-full leading-relaxed flex flex-col">
               <div className="message-content text-error-text">
                 {displayError}
               </div>

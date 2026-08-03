@@ -1,54 +1,30 @@
-import '../../../assets/shell.css';
+function ShimmerBar({ className = '' }: { className?: string }) {
+  return (
+    <div className={`relative overflow-hidden bg-[#1e1f20] ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#2d2e30] to-transparent animate-shimmer" />
+    </div>
+  );
+}
 
 export function ChatSkeleton() {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        background: 'var(--bg-primary, #131314)',
-        boxSizing: 'border-box',
-      }}
-    >
+    <div className="flex flex-col h-screen bg-[#131314]">
       <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-3xl mx-auto">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '12px 16px',
-            height: '56px',
-            boxSizing: 'border-box',
-            width: '100%',
-            borderBottom: '1px solid var(--border-color, #3c4043)',
-          }}
-        >
-          <div className="skeleton-glow" style={{ width: '120px', height: '16px', borderRadius: '8px' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="skeleton-glow" style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
-            <div className="skeleton-glow" style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
-            <div className="skeleton-glow" style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+        <div className="flex justify-between items-center px-4 h-14 w-full border-b border-[#3c4043]">
+          <ShimmerBar className="w-30 h-4 rounded-lg" />
+          <div className="flex items-center gap-3">
+            <ShimmerBar className="w-7 h-7 rounded-full" />
+            <ShimmerBar className="w-7 h-7 rounded-full" />
+            <ShimmerBar className="w-7 h-7 rounded-full" />
           </div>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            padding: '16px 10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            width: '100%',
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div className="skeleton-glow" style={{ flex: 1, borderRadius: '16px', width: '100%' }} />
+        <div className="flex-1 px-3 pt-3 pb-1 flex flex-col gap-5 w-full overflow-hidden">
+          <ShimmerBar className="flex-1 rounded-2xl w-full" />
         </div>
 
-        <div style={{ padding: '0 10px 10px', boxSizing: 'border-box', width: '100%', flexShrink: 0 }}>
-          <div className="skeleton-glow" style={{ height: '88px', borderRadius: '12px', width: '100%' }} />
+        <div className="p-2.5 w-full shrink-0">
+          <ShimmerBar className="h-22 rounded-xl w-full" />
         </div>
       </div>
     </div>

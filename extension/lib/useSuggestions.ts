@@ -39,7 +39,11 @@ export function useSuggestions(url: string | null, enabled: boolean) {
     },
     enabled: !!debouncedUrl && !isRestricted && enabled,
     retry: false,
-    staleTime: 0,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     placeholderData: () => suggestionsCache.get(debouncedUrl ?? ''),
   });
 
