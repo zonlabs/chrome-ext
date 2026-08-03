@@ -1,3 +1,6 @@
+// Minimal markdown renderer for chat messages.
+// Accepted limitations: does not support links, images, or tables.
+// Supports: bold (**text**), inline code (`code`), fenced code blocks (```lang), headings (##, ###, ####), and lists (-, *, 1.).
 import React from 'react';
 import { CodeBlock } from '../components/CodeBlock';
 

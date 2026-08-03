@@ -6,7 +6,16 @@ import { getActiveTabPageContext } from './page-context-client';
 import { isRestrictedUrl } from './tabs';
 
 const suggestionsCache = new Map<string, string[]>();
+// callTimes is shared module-level state, intentionally not per-hook instance.
+// This is safe because a single sidepanel process hosts all useSuggestions calls.
+// Reset alongside suggestionsCache via resetSuggestionsCache() when invalidating.
 const callTimes: number[] = [];
+
+/** Clears the suggestions cache and resets the module-level rate-limit state. */
+export function resetSuggestionsCache(): void {
+  suggestionsCache.clear();
+  callTimes.length = 0;
+}
 
 function isRateLimited(): boolean {
   const now = Date.now();
