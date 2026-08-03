@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', Consolas, Monaco, monospace;
+
+  --color-primary: #131314;
+  --color-secondary: #1e1f20;
+  --color-hover: #2a2b2d;
+  --color-input: #1e1f20;
+  --color-text-main: #e3e3e3;
+  --color-text-secondary: #c4c7c5;
+  --color-text-muted: #8e8e8e;
+  --color-border-color: #3c4043;
+  --color-accent-blue: #ff8a80;
+  --color-accent-blue-hover: #ffb2ab;
+  --color-code-bg: #0f0f0f;
+  --color-user-bubble-bg: #1e1f20;
+  --color-error-bg: #3c1e1e;
+  --color-error-text: #e06c75;
+  --color-red: #ea4335;
+
+  --animate-border-shimmer: border-shimmer 2s linear infinite;
+  --animate-wave-eq: wave-eq 1.2s ease-in-out infinite;
+  --animate-text-shimmer: textShimmer 1.8s linear infinite;
+  --animate-popup-slide-in: popupSlideIn 0.15s ease-out;
+
+  @keyframes border-shimmer {
+    0% { background-position: 0% 50%, 0% 50%; }
+    50% { background-position: 0% 50%, 100% 50%; }
+    100% { background-position: 0% 50%, 200% 50%; }
+  }
+
+  @keyframes wave-eq {
+    0%, 100% { transform: scaleY(0.35); opacity: 0.5; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  @keyframes textShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes popupSlideIn {
+    0% { opacity: 0; transform: translateY(-6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  --animate-shimmer: shimmer 1.2s linear infinite;
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+}
+
+:root {
+  --bg-primary: #131314;
+  --bg-secondary: #1e1f20;
+  --bg-hover: #2a2b2d;
+  --bg-input: #1e1f20;
+  --text-primary: #e3e3e3;
+  --text-secondary: #c4c7c5;
+  --text-muted: #8e8e8e;
+  --border-color: #3c4043;
+  --accent-blue: #ff8a80;
+  --accent-blue-hover: #ffb2ab;
+  --code-bg: #0f0f0f;
+  --user-bubble-bg: #1e1f20;
+  --error-bg: #3c1e1e;
+  --error-text: #e06c75;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply h-full m-0 p-0 bg-primary text-text-main font-sans;
+  }
+
+  #root {
+    @apply flex flex-col h-screen overflow-hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #3c4043;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #5f6368;
+  }
+}
+
+/* Custom Tailwind v4 Utilities */
+@utility tool-call-shimmer {
+  background: linear-gradient(90deg, var(--text-muted, #8e8e8e) 25%, var(--text-primary, #ffffff) 50%, var(--text-muted, #8e8e8e) 75%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: var(--animate-text-shimmer);
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}

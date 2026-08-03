@@ -81,7 +81,20 @@ export class ChatAgent extends AIChatAgent<Env> {
       });
 
       const response = createUIMessageStreamResponse({
-        stream: toUIMessageStream({ stream: result.stream }),
+        stream: toUIMessageStream({
+          stream: result.stream,
+          onError: (error) => {
+            const raw = error instanceof Error ? error.message : String(error);
+            const jsonMatch = raw.match(/\{.*"message"\s*:\s*".*?\".*\}/s);
+            if (jsonMatch) {
+              try {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (parsed.message) return parsed.message;
+              } catch {}
+            }
+            return raw;
+          },
+        }),
       });
       return response;
     } catch (err) {

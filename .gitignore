@@ -1,6 +1,7 @@
 node_modules/
 dist/
-extension/dist/
+.output/
+.wxt/
 .wrangler/
 .dev.vars
 **/.dev.vars
