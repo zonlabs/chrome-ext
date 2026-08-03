@@ -1,4 +1,4 @@
-/* Plugins screen styles — ported verbatim from ui/style.css (lines 1963-2548). */
+/* Plugins screen styles — ported verbatim from the legacy ui/style.css (lines 1963-2548), removed during the WXT migration. */
 
 .plugins-page-container {
   display: flex;

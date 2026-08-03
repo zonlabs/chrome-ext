@@ -1,5 +1,5 @@
 /* Shared shell styles: header, history popup, welcome, loading, skeleton.
-   Ported verbatim from ui/style.css for pixel-identical rendering. */
+   Ported verbatim from the legacy ui/style.css for pixel-identical rendering. */
 
 #header {
   border-bottom: none;

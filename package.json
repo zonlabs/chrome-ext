@@ -5,12 +5,11 @@
     "test:ext": "cd extension && npm test",
     "build": "npm run build:ext",
     "build:ext": "cd extension && npm run build",
-    "build:ext:dev": "cd extension && npm run build:dev",
     "build:worker": "cd worker && npx wrangler deploy",
     "dev:worker": "cd worker && npx wrangler dev",
     "dev:web": "cd web && npm run dev",
     "build:web": "cd web && npm run build",
-    "dev:ext": "cd extension && npm run watch",
+    "dev:ext": "cd extension && npm run dev",
     "migrate": "cd worker && npx wrangler d1 migrations apply agent-db"
   },
   "devDependencies": {
