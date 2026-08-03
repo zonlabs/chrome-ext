@@ -31,8 +31,8 @@ export type PageContextRequest =
   | { type: 'get:focusedElement' };
 
 export type PageContextResponse =
-  | { ok: true; data: PageSnapshot }
-  | { ok: true; data: FocusedElementInfo };
+  | { data: PageSnapshot }
+  | { data: FocusedElementInfo };
 
 export async function sendMessage<T extends ExtMessage>(message: T): Promise<ExtResponse> {
   return browser.runtime.sendMessage(message);
