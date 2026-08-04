@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { browser } from 'wxt/browser';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../../lib/query-client';
 import { AuthProvider, useAuth } from '../../lib/auth-provider';
@@ -14,7 +15,7 @@ import { ChatScreen } from '../../features/chat';
 import { ChatSkeleton } from '../../features/chat/components/ChatSkeleton';
 import { PluginsScreen } from '../../features/plugins';
 import type { ChatThread } from '../../lib/api/threads';
-import type { Tab } from '../../lib/types';
+import type { ContentScriptBroadcast } from '../../lib/messages';
 
 interface Plugin {
   id: string;
@@ -46,6 +47,7 @@ function Shell() {
   const [disabledPlugins, setDisabledPlugins] = useLocalStorage<string[]>(LS_DISABLED_PLUGINS, []);
   const [inputValue, setInputValue] = useState('');
   const [activeView, setActiveView] = useState<'chat' | 'plugins'>('chat');
+  const [selectedText, setSelectedText] = useState('');
 
   const [showPopup, setShowPopup] = useState(false);
   const [showSelected, setShowSelected] = useState(false);
@@ -97,9 +99,23 @@ function Shell() {
   useEffect(() => {
     void refreshActiveTab();
     return onTabBroadcast(() => {
+      // Clear selected text when the active tab changes
+      setSelectedText('');
       void refreshActiveTab();
     });
   }, [refreshActiveTab]);
+
+  // Listen for text-selection broadcasts from the content script
+  useEffect(() => {
+    function handleRuntimeMessage(message: ContentScriptBroadcast | { type: string }) {
+      if (message.type === 'selection:changed') {
+        const { text } = message as ContentScriptBroadcast;
+        if (text) setSelectedText(text); // only update on non-empty — belt-and-suspenders
+      }
+    }
+    browser.runtime.onMessage.addListener(handleRuntimeMessage);
+    return () => browser.runtime.onMessage.removeListener(handleRuntimeMessage);
+  }, []);
 
   useEffect(() => {
     if (activeThreadId && activeTabUrl && !isRestrictedUrl(activeTabUrl)) {
@@ -209,6 +225,8 @@ function Shell() {
     selectedModelIcon: selectedModelEntry?.icon ?? '',
     onSelectModel: handleSelectModel,
     onToggleUrl: toggleUrl,
+    selectedText,
+    onRemoveSelectedText: () => setSelectedText(''),
   };
 
   if (authLoading) {

@@ -68,6 +68,8 @@ export interface ChatScreenProps {
   selectedModelIcon: string;
   onSelectModel: (value: string) => void;
   onToggleUrl: (url: string) => void;
+  selectedText: string;
+  onRemoveSelectedText: () => void;
 }
 
 type InitialMessageRequest = {
@@ -122,6 +124,8 @@ function ActiveThreadChatView(
     onTogglePlugin,
     updateActiveThreadTitle,
     handleDeleteThread,
+    selectedText,
+    onRemoveSelectedText,
   } = props;
 
   const enabledPluginsString = useMemo(() => {
@@ -323,6 +327,13 @@ function ActiveThreadChatView(
     if (!inputValue.trim()) return;
     setIsAborted(false);
 
+    // Build the final text: prepend selected text as context if present
+    let textToSend = inputValue;
+    if (selectedText.trim()) {
+      textToSend = `Selected text: "${selectedText}"\n\n${inputValue}`;
+      onRemoveSelectedText();
+    }
+
     try {
       const ctx = await getActiveTabPageContext();
       let screenshot: string | null = null;
@@ -335,10 +346,10 @@ function ActiveThreadChatView(
       pendingContextRef.current = null;
     }
 
-    sendChatMessage({ text: inputValue });
+    sendChatMessage({ text: textToSend });
     setInputValue('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
-  }, [inputValue, model, sendChatMessage, setInputValue, inputRef]);
+  }, [inputValue, selectedText, onRemoveSelectedText, model, sendChatMessage, setInputValue, inputRef]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -489,6 +500,8 @@ function ActiveThreadChatView(
           selectedModelLabel={selectedModelLabel}
           selectedModelIcon={selectedModelIcon}
           onSelectModel={onSelectModel}
+          selectedText={selectedText}
+          onRemoveSelectedText={onRemoveSelectedText}
         />
       </div>
     </div>
@@ -563,6 +576,8 @@ function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; cre
           selectedModelIcon={props.selectedModelIcon}
           onSelectModel={props.onSelectModel}
           onStop={() => {}}
+          selectedText={props.selectedText}
+          onRemoveSelectedText={props.onRemoveSelectedText}
         />
       </div>
     </div>
@@ -577,12 +592,21 @@ export function ChatScreen(props: ChatScreenProps) {
   const handleInitialMessageSent = useCallback(() => setPendingInitialMessage(null), []);
 
   const createAndSend = async () => {
-    const text = props.inputValue.trim();
-    if (!text) return;
+    const rawText = props.inputValue.trim();
+    if (!rawText) return;
     if (creatingThreadRef.current) return;
     creatingThreadRef.current = true;
     setIsCreating(true);
     setCreateError(null);
+
+    // Prepend selected text as context if present
+    const hasSelectedText = props.selectedText.trim().length > 0;
+    const text = hasSelectedText
+      ? `Selected text: "${props.selectedText}"\n\n${rawText}`
+      : rawText;
+    // NOTE: onRemoveSelectedText is called only after the thread is successfully
+    // created so a failed attempt preserves the chip context.
+
     try {
       let context: InitialMessageRequest['context'] = { pageContext: null, screenshot: null };
       try {
@@ -598,6 +622,7 @@ export function ChatScreen(props: ChatScreenProps) {
         props.setActiveThreadId(thread.id);
         setPendingInitialMessage({ text, context });
         props.setInputValue('');
+        if (hasSelectedText) props.onRemoveSelectedText(); // clear chip on success only
       } catch (error) {
         const detail = error instanceof Error && error.message.trim() ? error.message : 'Please sign in and try again.';
         setCreateError(`Couldn't start a chat. ${detail}`);

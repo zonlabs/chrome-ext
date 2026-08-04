@@ -23,6 +23,9 @@ export type PageContextRequest =
   | { type: 'get:pageContext' }
   | { type: 'get:focusedElement' };
 
+export type ContentScriptBroadcast =
+  | { type: 'selection:changed'; text: string };
+
 export async function sendMessage<T extends ExtMessage>(message: T): Promise<ExtResponse> {
   return browser.runtime.sendMessage(message);
 }

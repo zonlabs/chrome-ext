@@ -1,5 +1,5 @@
 import React, { RefObject } from 'react';
-import { Plus, ChevronDown, Check, ArrowUp, Square, X } from 'lucide-react';
+import { Plus, ChevronDown, Check, ArrowUp, Square, X, SquareDashedText } from 'lucide-react';
 import { Tab, ModelTier, ModelEntry } from '../../../lib/types';
 import { ModelSelector } from './ModelSelector';
 import { Favicon, safeUrl } from '../../../components/Favicon';
@@ -63,6 +63,8 @@ interface ChatInputProps {
   selectedModelIcon: string;
   onSelectModel: (val: string) => void;
   onStop: () => void;
+  selectedText?: string;
+  onRemoveSelectedText?: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -91,6 +93,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   selectedModelIcon,
   onSelectModel,
   onStop,
+  selectedText,
+  onRemoveSelectedText,
 }) => {
   const selectedTabs = tabs.filter((t: any) => selectedUrls.includes(t.url));
 
@@ -191,21 +195,60 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         )}
 
         <div id="input-capsule" className="bg-transparent border-none p-1 flex flex-col">
-          <textarea
-            ref={inputRef}
-            id="input"
-            value={inputValue}
-            placeholder="Type @ to ask about a tab"
-            rows={1}
-            disabled={isStreaming}
-            onKeyDown={onKeyDown}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-              setInputValue(e.target.value);
-              e.target.style.height = 'auto';
-              e.target.style.height = `${e.target.scrollHeight}px`;
-            }}
-            className="w-full bg-transparent border-none resize-none outline-none font-[inherit] text-[14px] leading-[1.4] text-[var(--text-primary)] min-h-[24px] max-h-[120px] px-1 py-2 placeholder:text-[var(--text-muted)]"
-          />
+          <div className="flex flex-col min-h-0 max-h-[56px] overflow-y-auto">
+            {/* Selected text context chip */}
+            {selectedText && (
+              <div className="flex items-center gap-1.5 px-1 pt-1 pb-1">
+                <div
+                  className="group flex flex-col min-w-0 rounded-lg px-2.5 py-1.5"
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    maxWidth: '100%',
+                  }}
+                >
+                  {/* Row 1: icon + label + close */}
+                  <div className="flex items-center gap-1.5">
+                    <SquareDashedText size={12} style={{ color: 'var(--text-muted,#8e8e8e)', flexShrink: 0 }} />
+                    <span className="text-[12px] font-medium whitespace-nowrap flex-1" style={{ color: 'var(--text-secondary,#b0b0b0)' }}>
+                      Selected text
+                    </span>
+                    <button
+                      className="bg-transparent border-none cursor-pointer flex items-center justify-center p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:text-[var(--text-primary)] hover:bg-[rgba(255,255,255,0.1)]"
+                      style={{ color: 'var(--text-muted,#8e8e8e)', flexShrink: 0 }}
+                      title="Remove selected text"
+                      onClick={onRemoveSelectedText}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  {/* Row 2: content preview */}
+                  <span
+                    className="text-[12px] whitespace-nowrap overflow-hidden text-ellipsis mt-0.5"
+                    style={{ color: 'var(--text-muted,#8e8e8e)', maxWidth: '240px' }}
+                    title={selectedText}
+                  >
+                    {selectedText.length > 50 ? selectedText.slice(0, 50) + '…' : selectedText}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <textarea
+              ref={inputRef}
+              id="input"
+              value={inputValue}
+              placeholder="Type @ to ask about a tab"
+              rows={1}
+              disabled={isStreaming}
+              onKeyDown={onKeyDown}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                setInputValue(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              className="w-full bg-transparent border-none resize-none outline-none font-[inherit] text-[14px] leading-[1.4] text-[var(--text-primary)] min-h-[24px] px-1 py-2 placeholder:text-[var(--text-muted)] overflow-hidden"
+            />
+          </div>
 
           <div className="flex justify-between items-center mt-1">
             <div className="flex items-center">

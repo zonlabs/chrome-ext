@@ -16,5 +16,16 @@ export default defineContentScript({
       }
       return false;
     });
+
+    // Broadcast selected text to the side panel whenever the user lifts the mouse
+    let selectionDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    document.addEventListener('mouseup', () => {
+      if (selectionDebounceTimer) clearTimeout(selectionDebounceTimer);
+      selectionDebounceTimer = setTimeout(() => {
+        const text = window.getSelection()?.toString().trim() ?? '';
+        if (!text) return; // don't broadcast empty — avoids clearing the chip on stray clicks
+        browser.runtime.sendMessage({ type: 'selection:changed', text }).catch(() => {});
+      }, 100);
+    });
   },
 });
