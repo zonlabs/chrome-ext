@@ -6,7 +6,8 @@
     "deploy": "wrangler deploy",
     "migrate": "wrangler d1 migrations apply agent-db",
     "db:generate": "drizzle-kit generate",
-    "types": "wrangler types env.d.ts"
+    "types": "wrangler types env.d.ts",
+    "build": "tsc --noEmit"
   },
   "dependencies": {
     "@better-auth/infra": "^0.3.7",
