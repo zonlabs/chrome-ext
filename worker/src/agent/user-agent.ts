@@ -16,11 +16,6 @@ export class UserAgent extends Agent<Env> {
     });
   }
 
-  /** User ID accessed from framework props or instance name (user-<userId>). */
-  get userId(): string {
-    return (this as any).props?.userId || (this.name.startsWith('user-') ? this.name.slice(5) : this.name);
-  }
-
   /**
    * Access gate callback invoked before a WebSocket connection is upgraded to a sub-agent.
    * Validates access permissions before frames flow directly to the child ChatAgent.

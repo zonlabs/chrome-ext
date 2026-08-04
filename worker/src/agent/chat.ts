@@ -21,10 +21,10 @@ export class ChatAgent extends AIChatAgent<Env> {
    */
   override waitForMcpConnections = false;
 
-  /** User ID derived from the parent UserAgent hierarchy. */
+  /** User ID derived from the parent UserAgent hierarchy (e.g. UserAgent named "user-<id>"). */
   private get userId(): string | null {
     const parentName = this.parentPath?.at(0)?.name;
-    return parentName?.startsWith('user-') ? parentName.slice(5) : ((this as any).props?.userId || null);
+    return parentName?.startsWith('user-') ? parentName.slice(5) : null;
   }
 
   /** Parent UserAgent instance name for MCP tool proxying. */
