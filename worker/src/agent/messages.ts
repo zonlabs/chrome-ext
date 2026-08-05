@@ -55,6 +55,9 @@ export function prepareModelMessages(
     for (let i = modelMessages.length - 1; i >= 0; i--) {
       const msg = modelMessages[i];
       if (msg.role !== 'user') continue;
+      // Skip synthetic compaction summary messages to avoid corrupting page context or summary text
+      if (typeof msg.content === 'string' && msg.content.includes('[Conversation Summary]')) continue;
+      if (Array.isArray(msg.content) && msg.content.some(p => p.type === 'text' && (p as any).text?.includes('[Conversation Summary]'))) continue;
       if (typeof msg.content === 'string') {
         msg.content = `${contextText}\n\n${msg.content}`;
       } else if (Array.isArray(msg.content)) {

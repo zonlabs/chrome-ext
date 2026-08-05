@@ -46,7 +46,11 @@ describe('boundContextWindow', () => {
       summarize: mockSummarize,
     });
     expect(result.length).toBeLessThan(50);
-    expect(result[result.length - 1].id).toBe('msg-49');
+    const ids = result.map(m => m.id);
+    expect(ids).toContain('msg-0');
+    expect(ids).toContain('msg-1');
+    expect(ids).toContain('msg-49');
+    expect(ids).not.toContain('msg-20');
   });
 
   it('inserts a synthetic summary message when summarize option is provided', async () => {
@@ -65,7 +69,7 @@ describe('boundContextWindow', () => {
     expect(mockSummarize).toHaveBeenCalled();
     const summaryMsg = result.find(m => m.id.startsWith('compaction_summary'));
     expect(summaryMsg).toBeDefined();
-    expect((summaryMsg as any).content).toContain('Synthetic conversation summary of dropped turns.');
+    expect((summaryMsg?.parts[0] as any).text).toContain('Synthetic conversation summary of dropped turns.');
   });
 
   it('truncates large text in older messages', async () => {

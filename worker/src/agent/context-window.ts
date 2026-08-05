@@ -18,7 +18,7 @@ const TOKEN_THRESHOLD = 20_000;
 const KEEP_RECENT = 6;
 const MAX_TOOL_OUTPUT_CHARS = 400;
 const MAX_TEXT_CHARS = 8_000;
-const SOFT_TOKEN_LIMIT = 24_000;
+const SOFT_TOKEN_LIMIT = 20_000;
 
 // ---------------------------------------------------------------------------
 // Types & Options
@@ -47,7 +47,7 @@ export interface BoundContextWindowOptions {
   maxToolOutputChars?: number;
   /** Max chars for text parts in older messages (default: 8,000). */
   maxTextChars?: number;
-  /** Soft token limit before emitting a warning (default: 24,000). */
+  /** Soft token limit before emitting a warning (default: 20,000). */
   softTokenLimit?: number;
   /** Enable verbose console logging (default: false). */
   debug?: boolean;
@@ -81,9 +81,10 @@ export async function boundContextWindow(
   const debug = opts.debug ?? false;
 
   let current = [...messages];
+  const isOverThreshold = current.length > maxMessages || estimateUIMessageTokens(current) > tokenThreshold;
 
-  // 0. Restore stored summary from SQLite if not already present in active context
-  if (opts.sql && !current.some((m) => isCompactionMessage(m as Parameters<typeof isCompactionMessage>[0]))) {
+  // 0. Restore stored summary from SQLite if threshold reached and not already in active context
+  if (opts.sql && isOverThreshold && !current.some((m) => isCompactionMessage(m as Parameters<typeof isCompactionMessage>[0]))) {
     try {
       const rows = await opts.sql`SELECT summary FROM cf_context_summaries WHERE id = 'summary' LIMIT 1`;
       if (rows && rows.length > 0 && rows[0]?.summary) {
@@ -93,7 +94,6 @@ export async function boundContextWindow(
           id: `compaction_summary_persisted`,
           role: "user",
           parts: [{ type: "text", text: summaryContent }],
-          content: summaryContent,
         } as unknown as UIMessage;
 
         const headCount = Math.min(opts.protectHead ?? 2, current.length);
@@ -122,7 +122,7 @@ export async function boundContextWindow(
       : undefined;
 
   // 1. LLM Compaction via createCompactFunction
-  if (compactFn && (current.length > maxMessages || estimateUIMessageTokens(current) > tokenThreshold)) {
+  if (compactFn && isOverThreshold) {
     const compactResult = await compactFn(current as Parameters<typeof compactFn>[0]);
     if (compactResult) {
       const { fromMessageId, toMessageId, summary } = compactResult;
@@ -135,7 +135,6 @@ export async function boundContextWindow(
           id: `compaction_summary_${Date.now()}`,
           role: "user",
           parts: [{ type: "text", text: summaryContent }],
-          content: summaryContent,
         } as unknown as UIMessage;
 
         const head = current.slice(0, fromIdx);
