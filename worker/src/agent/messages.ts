@@ -1,5 +1,6 @@
 import { ModelMessage } from "ai";
 import { supportsVision } from "./models";
+import { generateAIText } from "../utils/ai";
 
 /**
  * Structure representing auto-captured browser tab context.
@@ -109,16 +110,15 @@ export async function generateChatTitle(
   if (!userMessage) return;
 
   try {
-    const res: any = await aiBinding.run('@cf/meta/llama-3.2-3b-instruct', {
-      messages: [
-        { role: 'system', content: 'Generate a concise title (max 6 words) for a chat based on the user\'s first message. Reply with ONLY the title — no quotes, no punctuation, no explanation.' },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: 15,
+    const rawTitle = await generateAIText({
+      binding: aiBinding,
+      system: "Generate a concise title (max 6 words) for a chat based on the user's first message. Reply with ONLY the title — no quotes, no punctuation, no explanation.",
+      prompt: userMessage,
+      maxTokens: 15,
       temperature: 0.3,
     });
-    const title = (res.response?.trim() || 'New Chat').replace(/^["']|["']$/g, '') || 'New Chat';
-    broadcast(JSON.stringify({ type: 'chat:title', title }));
+    const title = rawTitle.replace(/^["']|["']$/g, "") || "New Chat";
+    broadcast(JSON.stringify({ type: "chat:title", title }));
   } catch {
     // Title generation failed — keep default "New Chat"
   }
