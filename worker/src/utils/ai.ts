@@ -1,14 +1,18 @@
-﻿import { generateText } from "ai";
+import { generateText } from "ai";
 import { createWorkersAI } from "workers-ai-provider";
 
 export const DEFAULT_FAST_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 
+export interface WorkersAIBinding {
+  run(model: string, inputs: Record<string, unknown>, options?: Record<string, unknown>): Promise<unknown>;
+}
+
 export interface GenerateAITextOptions {
-  /** Cloudflare Workers AI binding instance (env.AI). */
-  binding: any;
+  /** Cloudflare Workers AI binding instance (\env.AI\). */
+  binding: WorkersAIBinding | any;
   /** Prompt text to generate completion for. */
   prompt: string;
-  /** Model identifier (defaults to @cf/meta/llama-3.2-3b-instruct). */
+  /** Model identifier (defaults to \@cf/meta/llama-3.2-3b-instruct\). */
   model?: string;
   /** Optional system prompt instruction. */
   system?: string;
@@ -20,9 +24,6 @@ export interface GenerateAITextOptions {
 
 /**
  * Executes a text completion call using AI SDK generateText with Cloudflare Workers AI.
- *
- * @param options - Generation options including Workers AI binding, model, prompt, and parameters.
- * @returns The trimmed output text string.
  */
 export async function generateAIText(options: GenerateAITextOptions): Promise<string> {
   const modelName = options.model || DEFAULT_FAST_MODEL;

@@ -49,32 +49,46 @@ Rules:
 Example output:
 ["Explain what this function does","Find the npm package docs","What are the open issues?"]`;
 
+  const MODELS = [
+    '@cf/qwen/qwen3-30b-a3b-fp8',
+    '@cf/meta/llama-3.2-3b-instruct',
+    '@cf/meta/llama-3.1-8b-instruct-fp8-fast',
+  ];
+
   let suggestions: string[] = [];
 
-  try {
-    const raw = await generateAIText({
-      binding: c.env.AI,
-      system: 'You are a helpful assistant that responds only with valid JSON.',
-      prompt,
-      temperature: 0.7,
-    });
+  for (const model of MODELS) {
+    try {
+      const raw = await generateAIText({
+        binding: c.env.AI,
+        model,
+        system: 'You are a helpful assistant that responds only with valid JSON.',
+        prompt,
+        temperature: 0.7,
+      });
 
-    let arr: unknown = null;
-    const first = raw.indexOf('[');
-    const last = raw.lastIndexOf(']');
-    if (first !== -1 && last > first) {
-      try { arr = JSON.parse(raw.slice(first, last + 1)); } catch { arr = null; }
-    }
-    if (!Array.isArray(arr)) {
-      const strs = [...raw.matchAll(/"([^"\\]*(\\.[^"\\]*)*)"/g)].map((m) => m[1].replace(/\\"/g, '"'));
-      arr = strs.length ? strs : null;
-    }
+      let arr: unknown = null;
+      const first = raw.indexOf('[');
+      const last = raw.lastIndexOf(']');
+      if (first !== -1 && last > first) {
+        try { arr = JSON.parse(raw.slice(first, last + 1)); } catch { arr = null; }
+      }
+      if (!Array.isArray(arr)) {
+        const strs = [...raw.matchAll(/"([^"\\]*(\\.[^"\\]*)*)"/g)].map((m) => m[1].replace(/\\"/g, '"'));
+        arr = strs.length ? strs : null;
+      }
 
-    suggestions = (Array.isArray(arr) ? arr : [])
-      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-      .slice(0, 3);
-  } catch (e: any) {
-    console.error('[Suggestions] AI generation error:', e);
+      const valid = (Array.isArray(arr) ? arr : [])
+        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        .slice(0, 3);
+
+      if (valid.length > 0) {
+        suggestions = valid;
+        break;
+      }
+    } catch (e: any) {
+      console.warn(`[Suggestions] Model ${model} failed, trying next model:`, e?.message ?? e);
+    }
   }
 
   return c.json({ suggestions }, 200);

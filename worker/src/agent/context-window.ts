@@ -4,9 +4,10 @@ import {
   estimateMessageTokens,
   truncateOlderMessages,
   sanitizeToolPairs,
+  isCompactionMessage,
   type CompactResult,
 } from "agents/experimental/memory/utils";
-import { generateAIText } from "../utils/ai";
+import { generateAIText, type WorkersAIBinding } from "../utils/ai";
 
 // ---------------------------------------------------------------------------
 // Tunable defaults
@@ -23,6 +24,8 @@ const SOFT_TOKEN_LIMIT = 24_000;
 // Types & Options
 // ---------------------------------------------------------------------------
 
+export type SqlQueryFunction = (strings: TemplateStringsArray, ...values: any[]) => any;
+
 export interface BoundContextWindowOptions {
   /** Token threshold to trigger compaction (default: 20,000 tokens). */
   tokenThreshold?: number;
@@ -35,7 +38,7 @@ export interface BoundContextWindowOptions {
   /** Minimum number of tail messages to protect (default: 6). */
   minTailMessages?: number;
   /** Cloudflare Workers AI binding (`env.AI`) for LLM compaction. */
-  ai?: any;
+  ai?: WorkersAIBinding | any;
   /** Custom summarize function for LLM compaction. */
   summarize?: (prompt: string) => Promise<string>;
   /** Number of recent messages kept verbatim for text/tool truncation (default: 6). */
@@ -46,8 +49,10 @@ export interface BoundContextWindowOptions {
   maxTextChars?: number;
   /** Soft token limit before emitting a warning (default: 24,000). */
   softTokenLimit?: number;
+  /** Enable verbose console logging (default: false). */
+  debug?: boolean;
   /** SQLite query function for persisting compaction summaries (`this.sql.bind(this)`). */
-  sql?: (strings: TemplateStringsArray, ...values: any[]) => any;
+  sql?: SqlQueryFunction;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,41 +78,68 @@ export async function boundContextWindow(
   const maxToolOutputChars = opts.maxToolOutputChars ?? MAX_TOOL_OUTPUT_CHARS;
   const maxTextChars = opts.maxTextChars ?? MAX_TEXT_CHARS;
   const softTokenLimit = opts.softTokenLimit ?? SOFT_TOKEN_LIMIT;
+  const debug = opts.debug ?? false;
 
-  let current = messages;
+  let current = [...messages];
+
+  // 0. Restore stored summary from SQLite if not already present in active context
+  if (opts.sql && !current.some((m) => isCompactionMessage(m as Parameters<typeof isCompactionMessage>[0]))) {
+    try {
+      const rows = await opts.sql`SELECT summary FROM cf_context_summaries WHERE id = 'summary' LIMIT 1`;
+      if (rows && rows.length > 0 && rows[0]?.summary) {
+        const storedSummary = String(rows[0].summary);
+        const summaryContent = `[Conversation Summary]\n${storedSummary}`;
+        const storedSummaryMsg: UIMessage = {
+          id: `compaction_summary_persisted`,
+          role: "user",
+          parts: [{ type: "text", text: summaryContent }],
+          content: summaryContent,
+        } as unknown as UIMessage;
+
+        const headCount = Math.min(opts.protectHead ?? 2, current.length);
+        current = [
+          ...current.slice(0, headCount),
+          storedSummaryMsg,
+          ...current.slice(headCount),
+        ];
+      }
+    } catch {
+      // Table doesn't exist yet
+    }
+  }
 
   // Build compaction function using agents createCompactFunction
   const compactFn =
     opts.ai || opts.summarize
       ? createCompactFunction({
-        protectHead: opts.protectHead ?? 2,
-        tailTokenBudget: opts.tailTokenBudget ?? 16_000,
-        minTailMessages: opts.minTailMessages ?? 6,
-        summarize:
-          opts.summarize ||
-          ((prompt: string) => generateAIText({ binding: opts.ai, prompt })),
-      })
+          protectHead: opts.protectHead ?? 2,
+          tailTokenBudget: opts.tailTokenBudget ?? 16_000,
+          minTailMessages: opts.minTailMessages ?? 6,
+          summarize:
+            opts.summarize ||
+            ((prompt: string) => generateAIText({ binding: opts.ai, prompt })),
+        })
       : undefined;
 
   // 1. LLM Compaction via createCompactFunction
-  if (compactFn && (messages.length > maxMessages || estimateUIMessageTokens(messages) > tokenThreshold)) {
-    const compactResult = await compactFn(messages as Parameters<typeof compactFn>[0]);
+  if (compactFn && (current.length > maxMessages || estimateUIMessageTokens(current) > tokenThreshold)) {
+    const compactResult = await compactFn(current as Parameters<typeof compactFn>[0]);
     if (compactResult) {
       const { fromMessageId, toMessageId, summary } = compactResult;
-      const fromIdx = messages.findIndex((m) => m.id === fromMessageId);
-      const toIdx = messages.findIndex((m) => m.id === toMessageId);
+      const fromIdx = current.findIndex((m) => m.id === fromMessageId);
+      const toIdx = current.findIndex((m) => m.id === toMessageId);
 
       if (fromIdx !== -1 && toIdx !== -1 && toIdx >= fromIdx) {
         const summaryContent = `[Conversation Summary]\n${summary}`;
         const summaryMsg: UIMessage = {
           id: `compaction_summary_${Date.now()}`,
-          role: "assistant",
+          role: "user",
           parts: [{ type: "text", text: summaryContent }],
           content: summaryContent,
         } as unknown as UIMessage;
 
-        const head = messages.slice(0, fromIdx);
-        const tail = messages.slice(toIdx + 1);
+        const head = current.slice(0, fromIdx);
+        const tail = current.slice(toIdx + 1);
         current = [...head, summaryMsg, ...tail];
 
         if (opts.sql) {
@@ -126,7 +158,7 @@ export async function boundContextWindow(
               VALUES ('summary', ${summary}, ${fromMessageId}, ${toMessageId}, ${Date.now()})
             `;
           } catch (err) {
-            console.error("[ChatAgent:contextWindow] SQLite write error:", err);
+            if (debug) console.error("[ChatAgent:contextWindow] SQLite write error:", err);
           }
         }
       }
@@ -142,14 +174,16 @@ export async function boundContextWindow(
     { keepRecent, maxToolOutputChars, maxTextChars }
   ) as UIMessage[];
 
-  // 4. Soft Token Limit Logging
-  const finalTokens = estimateUIMessageTokens(truncated);
-  console.log(`[ChatAgent:contextWindow] history=${messages.length} → window=${truncated.length} estimatedTokens=${finalTokens}`);
+  // 4. Soft Token Limit Logging (gated behind debug flag)
+  if (debug) {
+    const finalTokens = estimateUIMessageTokens(truncated);
+    console.log(`[ChatAgent:contextWindow] history=${messages.length} → window=${truncated.length} estimatedTokens=${finalTokens}`);
 
-  if (finalTokens > softTokenLimit) {
-    console.warn(
-      `[ChatAgent:contextWindow] estimated tokens (${finalTokens}) exceeds soft limit (${softTokenLimit}).`
-    );
+    if (finalTokens > softTokenLimit) {
+      console.warn(
+        `[ChatAgent:contextWindow] estimated tokens (${finalTokens}) exceeds soft limit (${softTokenLimit}).`
+      );
+    }
   }
 
   return truncated;
