@@ -37,7 +37,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     : null;
 
   return (
-    <div className="flex flex-col items-start justify-center flex-1 w-full max-w-2xl mx-auto px-1 py-8">
+    <div className="flex flex-col items-start justify-center flex-1 w-full max-w-xl mx-auto px-1 py-8">
       <h1 className="text-[1.75rem] font-bold bg-gradient-to-r from-[#e8574a] from-60% to-white bg-clip-text text-transparent mb-1 tracking-tight">
         Hello{firstName ? `, ${firstName}` : ''},
       </h1>

@@ -250,10 +250,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             />
           </div>
 
-          <div className="flex justify-between items-center mt-1">
-            <div className="flex items-center">
+          <div className="flex justify-between items-center mt-1 px-1">
+            <div className="flex items-center shrink-0">
               <button
-                className="bg-transparent border-none cursor-pointer w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] transition-[background-color,color] duration-150 hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                className="w-7 h-7 rounded-full bg-transparent border-none cursor-pointer flex items-center justify-center shrink-0 text-[var(--text-secondary)] transition-[background-color,color] duration-150 hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                 title="Attach tabs"
                 onClick={() => { setShowSelected(false); setShowPopup(!showPopup); }}
               >
@@ -261,7 +261,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="flex items-center gap-2 shrink-0">
               <ModelSelector
                 showModelPopup={showModelPopup}
                 setShowModelPopup={setShowModelPopup}
@@ -275,42 +275,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
               {isStreaming ? (
                 <button
-                  className="transition-[background-color,color] duration-150"
+                  className="w-7 h-7 rounded-full bg-[var(--red,#ea4335)] text-white border-none flex items-center justify-center shrink-0 cursor-pointer transition-[background-color,color] duration-150"
                   title="Stop generating"
                   onClick={onStop}
-                  style={{
-                    backgroundColor: 'var(--red, #ea4335)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
                 >
                   <Square size={10} fill="#ffffff" stroke="none" />
                 </button>
               ) : (
                 <button
-                  className="transition-[background-color,color] duration-150"
+                  className={`w-7 h-7 rounded-full border-none flex items-center justify-center shrink-0 transition-[background-color,color] duration-150 ${
+                    inputValue.trim()
+                      ? 'bg-white text-[#131314] cursor-pointer'
+                      : 'bg-transparent text-[var(--text-muted,#8e8e8e)] cursor-default'
+                  }`}
                   title="Send message"
                   onClick={onSubmit}
                   disabled={!inputValue.trim()}
-                  style={{
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: 'none',
-                    backgroundColor: inputValue.trim() ? '#ffffff' : 'transparent',
-                    color: inputValue.trim() ? '#131314' : '#8e8e8e',
-                    cursor: inputValue.trim() ? 'pointer' : 'default',
-                  }}
                 >
                   <ArrowUp size={14} strokeWidth={2.5} />
                 </button>

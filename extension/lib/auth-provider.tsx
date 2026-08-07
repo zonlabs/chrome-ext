@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { getAuthUser, signIn as signInRequest, signOut as signOutRequest } from './auth';
+import { getAuthSnapshot, signIn as signInRequest, signOut as signOutRequest } from './auth';
 import { LS_ACTIVE } from './constants';
 import type { PremiumUser } from './types';
 
 export interface AuthContextValue {
   user: PremiumUser | null;
+  token: string;
   authLoading: boolean;
   signingIn: boolean;
   signIn: () => Promise<PremiumUser | null>;
@@ -17,19 +18,23 @@ export const AuthContext = createContext<AuthContextValue | undefined>(undefined
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PremiumUser | null>(null);
+  const [token, setToken] = useState<string>('');
   const [authLoading, setAuthLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     let disposed = false;
-    void getAuthUser()
-      .then((u) => {
+    void getAuthSnapshot()
+      .then(({ user: u, jwt }) => {
         if (disposed) return;
         setUser(u ?? null);
+        setToken(jwt ?? '');
       })
       .catch(() => {})
       .finally(() => {
-        if (!disposed) setAuthLoading(false);
+        if (!disposed) {
+          setAuthLoading(false);
+        }
       });
     return () => {
       disposed = true;
@@ -41,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const u = await signInRequest();
       setUser(u);
+      const snapshot = await getAuthSnapshot();
+      setToken(snapshot.jwt ?? '');
       return u;
     } finally {
       setSigningIn(false);
@@ -57,8 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleAuthLost = useCallback(() => setUser(null), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, authLoading, signingIn, signIn, signOut, handleAuthLost }),
-    [user, authLoading, signingIn, signIn, signOut, handleAuthLost],
+    () => ({ user, token, authLoading, signingIn, signIn, signOut, handleAuthLost }),
+    [user, token, authLoading, signingIn, signIn, signOut, handleAuthLost],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

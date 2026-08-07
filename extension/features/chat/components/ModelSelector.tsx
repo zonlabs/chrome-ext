@@ -62,27 +62,27 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     : '';
 
   return (
-    <div className="flex items-center" ref={modelDropdownRef}>
+    <div className="relative shrink-0 flex items-center" ref={modelDropdownRef}>
       <button
-        className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-[18px] text-[var(--text-primary)] text-[13px] font-medium px-2.5 h-7 cursor-pointer outline-none flex items-center gap-2 transition-all duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-muted)]"
+        className="h-7 px-2.5 rounded-[18px] bg-transparent text-[var(--text-primary)] text-[13px] font-medium border-none outline-none flex items-center justify-center gap-1.5 shrink-0 cursor-pointer leading-none transition-all duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:bg-[var(--bg-hover)]"
         onClick={() => setShowModelPopup(!showModelPopup)}
       >
         {selectedModelIcon && (
           <img
             src={selectedModelIconUrl}
             alt=""
-            className="w-4 h-4 rounded-[2px] block"
+            className="w-4 h-4 rounded-[2px] block shrink-0"
           />
         )}
-        <span className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">{selectedModelLabel}</span>
+        <span className="max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis leading-none">{selectedModelLabel}</span>
         <ChevronDown
           size={14}
-          className={`transition-transform duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${showModelPopup ? 'rotate-180' : ''}`}
+          className={`shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${showModelPopup ? 'rotate-180' : ''}`}
         />
       </button>
 
       {showModelPopup && (
-        <div className="absolute bottom-[calc(100%+8px)] left-4 right-4 bg-[rgba(30,31,32,0.85)] backdrop-blur-[16px] border border-[rgba(255,255,255,0.08)] rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-[1000] flex flex-col overflow-hidden animate-[popupSlideIn_.2s_cubic-bezier(0.16,1,0.3,1)]">
+        <div className="absolute bottom-[calc(100%+8px)] right-0 w-[285px] max-w-[calc(100vw-24px)] bg-[rgba(30,31,32,0.95)] backdrop-blur-[16px] border border-[rgba(255,255,255,0.08)] rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-[1000] flex flex-col overflow-hidden animate-[popupSlideIn_.2s_cubic-bezier(0.16,1,0.3,1)]">
           <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-[rgba(255,255,255,0.05)]">
             <Search size={14} className="text-[var(--text-muted)] shrink-0" />
             <input
@@ -108,7 +108,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     return (
                       <div
                         key={m.value}
-                        className={`px-3.5 py-2 flex items-center gap-3 cursor-pointer transition-colors duration-150 hover:bg-[var(--bg-hover)] ${isSelected ? 'bg-[rgba(255,255,255,0.03)]' : ''}`}
+                        className={`mx-1 px-3 py-2 rounded-lg flex items-center gap-3 cursor-pointer transition-colors duration-150 hover:bg-[var(--bg-hover)] ${isSelected ? 'bg-[rgba(255,255,255,0.03)]' : ''}`}
                         onClick={() => {
                           onSelectModel(m.value);
                           setSearchQuery('');

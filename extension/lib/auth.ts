@@ -11,6 +11,14 @@ export async function getAuthUser(): Promise<PremiumUser | undefined> {
   return response.type === 'authSnapshot' ? response.user ?? undefined : undefined;
 }
 
+export async function getAuthSnapshot(): Promise<{ user: PremiumUser | null; jwt: string | null }> {
+  const response = await sendMessage({ type: 'auth:snapshot' });
+  if (response.type === 'authSnapshot') {
+    return { user: response.user ?? null, jwt: response.jwt ?? null };
+  }
+  return { user: null, jwt: null };
+}
+
 export async function clearAuth(): Promise<void> {
   await sendMessage({ type: 'auth:clear' });
 }

@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { useAgent } from 'agents/react';
 import { sendMessage } from './messages';
 import { WORKER_URL } from './constants';
+import { useAuth } from './auth-provider';
 
 export interface McpServer {
   id: string;
@@ -126,13 +127,19 @@ export function AgentProvider({ agentId, children }: { agentId: string; children
   return (
     <AgentContext.Provider value={value}>
       {agentId ? (
-        <AgentConnection
-          agentId={agentId}
-          onAgent={setAgent}
-          onMcpUpdate={handleMcpUpdate}
-          onOpen={() => setConnectionStatus('connected')}
-          onClose={() => setConnectionStatus('disconnected')}
-        />
+        <Suspense fallback={null}>
+          <AgentConnection
+            agentId={agentId}
+            onAgent={setAgent}
+            onMcpUpdate={handleMcpUpdate}
+            onOpen={() => {
+              setConnectionStatus('connected');
+            }}
+            onClose={() => {
+              setConnectionStatus('disconnected');
+            }}
+          />
+        </Suspense>
       ) : null}
       {children}
     </AgentContext.Provider>
@@ -148,17 +155,15 @@ interface AgentConnectionProps {
 }
 
 function AgentConnection({ agentId, onAgent, onMcpUpdate, onOpen, onClose }: AgentConnectionProps) {
-  const asyncQuery = useCallback(async () => {
-    const snapshot = await sendMessage({ type: 'auth:snapshot' });
-    const token = snapshot.type === 'authSnapshot' ? (snapshot.jwt ?? '') : '';
-    return { token };
-  }, []);
+  const { token } = useAuth();
+
+  const queryObj = useMemo(() => ({ token }), [token]);
 
   const agent = useAgent({
     agent: 'UserAgent',
     name: agentId,
     host: WORKER_URL,
-    query: asyncQuery,
+    query: queryObj,
     onIdentityChange: () => {},
     onOpen,
     onClose,

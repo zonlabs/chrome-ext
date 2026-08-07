@@ -8,6 +8,7 @@ export default defineConfig({
       plugins: [tailwindcss()],
       resolve: { dedupe: ["react", "react-dom"] },
       optimizeDeps: { include: ["react", "react-dom", "@tanstack/react-query"] },
+      build: { chunkSizeWarningLimit: 1000 },
     }) as WxtViteConfig,
   manifest: {
     name: "Obot",

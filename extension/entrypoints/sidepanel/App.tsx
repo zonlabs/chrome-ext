@@ -14,7 +14,6 @@ import { DEFAULT_MODEL, LS_MODEL, LS_DISABLED_PLUGINS, MODELS_DATA, VALID_MODELS
 import { ChatScreen } from '../../features/chat';
 import { ChatSkeleton } from '../../features/chat/components/ChatSkeleton';
 import { PluginsScreen } from '../../features/plugins';
-import type { ChatThread } from '../../lib/api/threads';
 import type { ContentScriptBroadcast } from '../../lib/messages';
 import type { Tab } from '../../lib/types';
 
@@ -84,23 +83,25 @@ function Shell() {
     const activeTab = await getActiveTab();
     if (!activeTab) return;
     const tabUrl = activeTab.url ?? '';
+    const isNewTabUrl = prevActiveTabUrlRef.current !== tabUrl;
     setActiveTabUrl(tabUrl);
     setActiveTabTitle(activeTab.title ?? '');
     prevActiveTabUrlRef.current = tabUrl;
     setSelectedUrls(isRestrictedUrl(tabUrl) ? [] : [tabUrl]);
 
-    const threadForThisTab = tabThreadMapRef.current.get(tabUrl);
-    if (threadForThisTab) {
-      setActiveThreadId(threadForThisTab);
-    } else {
-      setActiveThreadId(null);
+    if (isNewTabUrl) {
+      const threadForThisTab = tabThreadMapRef.current.get(tabUrl);
+      if (threadForThisTab) {
+        setActiveThreadId(threadForThisTab);
+      } else {
+        setActiveThreadId(null);
+      }
     }
   }, []);
 
   useEffect(() => {
     void refreshActiveTab();
     return onTabBroadcast(() => {
-      // Clear selected text when the active tab changes
       setSelectedText('');
       void refreshActiveTab();
     });
@@ -111,7 +112,7 @@ function Shell() {
     function handleRuntimeMessage(message: ContentScriptBroadcast | { type: string }) {
       if (message.type === 'selection:changed') {
         const { text } = message as ContentScriptBroadcast;
-        setSelectedText(text ?? '');
+        if (text) setSelectedText(text); // only update on non-empty — belt-and-suspenders
       }
     }
     browser.runtime.onMessage.addListener(handleRuntimeMessage);
@@ -119,7 +120,7 @@ function Shell() {
   }, []);
 
   useEffect(() => {
-    if (activeThreadId && activeTabUrl && !isRestrictedUrl(activeTabUrl)) {
+    if (activeThreadId && activeTabUrl) {
       tabThreadMapRef.current.set(activeTabUrl, activeThreadId);
     }
   }, [activeThreadId, activeTabUrl]);
@@ -238,15 +239,16 @@ function Shell() {
     return <PluginsScreen onClose={() => setActiveView('chat')} />;
   }
 
-  return (
-    <Suspense fallback={<ChatSkeleton />}>
-      <ChatScreen {...chatProps} />
-    </Suspense>
-  );
+  return <ChatScreen {...chatProps} />;
 }
 
 function AgentGate() {
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
+
+  if (authLoading) {
+    return <ChatSkeleton />;
+  }
+
   const pluginsAgentId = getPluginsAgentId(user);
 
   return (

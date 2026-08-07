@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
 
@@ -14,6 +14,7 @@ import { createClientTools, captureScreenshot } from './lib/clientTools';
 import { getActiveTabPageContext } from '../../lib/page-context-client';
 import { sendMessage } from '../../lib/messages';
 import { WORKER_URL, MODELS_DATA } from '../../lib/constants';
+import { useAuth } from '../../lib/auth-provider';
 import type { ChatThread } from '../../lib/api/threads';
 import type { PremiumUser, Tab, ModelEntry } from '../../lib/types';
 
@@ -140,11 +141,8 @@ function ActiveThreadChatView(
     return enabledPluginsString ? enabledPluginsString.split(',') : [];
   }, [enabledPluginsString]);
 
-  const asyncQuery = useCallback(async () => {
-    const snapshot = await sendMessage({ type: 'auth:snapshot' });
-    const token = snapshot.type === 'authSnapshot' ? (snapshot.jwt ?? '') : '';
-    return { token };
-  }, []);
+  const { token } = useAuth();
+  const queryObj = useMemo(() => ({ token }), [token]);
 
   const agentOptions = useMemo(
     () => ({
@@ -152,9 +150,9 @@ function ActiveThreadChatView(
       name: pluginsAgentId,
       sub: [{ agent: 'ChatAgent', name: activeThreadId! }],
       host: WORKER_URL,
-      query: asyncQuery,
+      query: queryObj,
     }),
-    [pluginsAgentId, activeThreadId, asyncQuery],
+    [pluginsAgentId, activeThreadId, queryObj],
   );
 
   const agent = useAgent(agentOptions);
@@ -414,7 +412,7 @@ function ActiveThreadChatView(
 
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
-      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-3xl mx-auto">
+      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-xl mx-auto">
         <ChatHeader
           title={activeThreadTitle}
           activeThreadId={activeThreadId}
@@ -511,7 +509,7 @@ function ActiveThreadChatView(
 function EmptyThreadChatView(props: ChatScreenProps & { isCreating: boolean; createError: string | null; onSubmit: () => void }) {
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-primary,#131314)] text-[var(--text-primary,#e3e3e3)] overflow-hidden">
-      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-3xl mx-auto">
+      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-xl mx-auto">
         <ChatHeader
           activeThreadId={null}
           threads={props.threads}
