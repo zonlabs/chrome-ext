@@ -298,8 +298,9 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#131314] text-[#e3e3e3] overflow-hidden">
-      <header className="flex items-center gap-3 px-3 py-2.5 border-b border-[#2a2b2d] bg-[#131314] shrink-0">
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-[#131314] text-[#e3e3e3] overflow-hidden">
+      <div className="flex flex-col flex-1 h-full min-h-0 w-full max-w-xl mx-auto">
+        <header className="flex items-center gap-3 px-3 py-2.5 border-b border-[#2a2b2d] bg-[#131314] shrink-0">
         <button className="flex items-center gap-1 text-xs text-[#c4c7c5] hover:text-[#e3e3e3] bg-transparent border-0 cursor-pointer shrink-0" onClick={onClose} title="Back to Chat">
           <ArrowLeft size={15} />
           <span>Back</span>
@@ -557,5 +558,6 @@ export const PluginsScreen: React.FC<PluginsScreenProps> = ({ onClose }) => {
         )}
       </div>
     </div>
-  );
+  </div>
+);
 };

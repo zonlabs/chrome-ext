@@ -111,6 +111,26 @@
   animation: var(--animate-text-shimmer);
 }
 
+@utility reasoning-shimmer {
+  background: linear-gradient(90deg, var(--text-muted, #8e8e8e) 25%, var(--text-primary, #ffffff) 50%, var(--text-muted, #8e8e8e) 75%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: var(--animate-text-shimmer);
+}
+
+.reasoning-shimmer {
+  background: linear-gradient(90deg, var(--text-muted, #8e8e8e) 25%, var(--text-primary, #ffffff) 50%, var(--text-muted, #8e8e8e) 75%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: var(--animate-text-shimmer);
+}
+
 @font-face {
   font-family: 'Inter';
   src: url('/fonts/inter-400.woff2') format('woff2');
