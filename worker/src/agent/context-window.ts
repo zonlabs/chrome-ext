@@ -5,7 +5,6 @@ import {
   truncateOlderMessages,
   sanitizeToolPairs,
   isCompactionMessage,
-  type CompactResult,
 } from "agents/experimental/memory/utils";
 import { generateAIText, type WorkersAIBinding } from "../utils/ai";
 
@@ -18,7 +17,7 @@ const TOKEN_THRESHOLD = 20_000;
 const KEEP_RECENT = 6;
 const MAX_TOOL_OUTPUT_CHARS = 400;
 const MAX_TEXT_CHARS = 8_000;
-const SOFT_TOKEN_LIMIT = 20_000;
+const SOFT_TOKEN_LIMIT = 16_000;
 
 // ---------------------------------------------------------------------------
 // Types & Options
@@ -47,7 +46,7 @@ export interface BoundContextWindowOptions {
   maxToolOutputChars?: number;
   /** Max chars for text parts in older messages (default: 8,000). */
   maxTextChars?: number;
-  /** Soft token limit before emitting a warning (default: 20,000). */
+  /** Soft token limit before emitting a warning (default: 16,000). */
   softTokenLimit?: number;
   /** Enable verbose console logging (default: false). */
   debug?: boolean;
@@ -62,6 +61,26 @@ export interface BoundContextWindowOptions {
 /** Estimate total tokens for an array of UIMessages using the agents SDK heuristic. */
 export function estimateUIMessageTokens(messages: UIMessage[]): number {
   return estimateMessageTokens(messages as Parameters<typeof estimateMessageTokens>[0]);
+}
+
+function hasToolCalls(msg?: UIMessage): boolean {
+  if (!msg || msg.role !== "assistant") return false;
+  return (msg.parts || []).some(
+    (p: any) =>
+      p.type === "tool-invocation" ||
+      p.type === "tool-call" ||
+      !!p.toolInvocation ||
+      !!p.toolCall
+  );
+}
+
+function isToolResult(msg?: UIMessage): boolean {
+  if (!msg) return false;
+  return (msg.parts || []).some(
+    (p: any) =>
+      p.type === "tool-result" ||
+      (p.type === "tool-invocation" && (p.toolInvocation?.state === "result" || p.toolInvocation?.result !== undefined))
+  );
 }
 
 /**
@@ -88,7 +107,7 @@ export async function boundContextWindow(
     try {
       const rows = await opts.sql`SELECT summary FROM cf_context_summaries WHERE id = 'summary' LIMIT 1`;
       if (rows && rows.length > 0 && rows[0]?.summary) {
-        const storedSummary = String(rows[0].summary);
+        const storedSummary = String(rows[0].summary).replace(/^\[Conversation Summary\]\s*/gi, "").trim();
         const summaryContent = `[Conversation Summary]\n${storedSummary}`;
         const storedSummaryMsg: UIMessage = {
           id: `compaction_summary_persisted`,
@@ -96,12 +115,23 @@ export async function boundContextWindow(
           parts: [{ type: "text", text: summaryContent }],
         } as unknown as UIMessage;
 
-        const headCount = Math.min(opts.protectHead ?? 2, current.length);
+        let headCount = Math.min(opts.protectHead ?? 2, current.length);
+        while (
+          headCount > 0 &&
+          headCount < current.length &&
+          hasToolCalls(current[headCount - 1]) &&
+          isToolResult(current[headCount])
+        ) {
+          headCount++;
+        }
+
         current = [
           ...current.slice(0, headCount),
           storedSummaryMsg,
           ...current.slice(headCount),
         ];
+        // Ensure tool-call / tool-result pairs are not split by the inserted summary
+        current = sanitizeToolPairs(current as Parameters<typeof sanitizeToolPairs>[0]) as unknown as UIMessage[];
       }
     } catch {
       // Table doesn't exist yet
@@ -115,9 +145,14 @@ export async function boundContextWindow(
           protectHead: opts.protectHead ?? 2,
           tailTokenBudget: opts.tailTokenBudget ?? 16_000,
           minTailMessages: opts.minTailMessages ?? 6,
-          summarize:
-            opts.summarize ||
-            ((prompt: string) => generateAIText({ binding: opts.ai, prompt })),
+          summarize: async (prompt: string) => {
+            // Strip any nested [Conversation Summary] markers from LLM prompt
+            const cleanPrompt = prompt.replace(/\[Conversation Summary\]\s*/gi, "");
+            if (opts.summarize) {
+              return opts.summarize(cleanPrompt);
+            }
+            return generateAIText({ binding: opts.ai!, prompt: cleanPrompt });
+          },
         })
       : undefined;
 
@@ -130,7 +165,8 @@ export async function boundContextWindow(
       const toIdx = current.findIndex((m) => m.id === toMessageId);
 
       if (fromIdx !== -1 && toIdx !== -1 && toIdx >= fromIdx) {
-        const summaryContent = `[Conversation Summary]\n${summary}`;
+        const cleanSummary = summary.replace(/^\[Conversation Summary\]\s*/gi, "").trim();
+        const summaryContent = `[Conversation Summary]\n${cleanSummary}`;
         const summaryMsg: UIMessage = {
           id: `compaction_summary_${Date.now()}`,
           role: "user",
@@ -154,7 +190,7 @@ export async function boundContextWindow(
             `;
             await opts.sql`
               INSERT OR REPLACE INTO cf_context_summaries (id, summary, from_message_id, to_message_id, updated_at)
-              VALUES ('summary', ${summary}, ${fromMessageId}, ${toMessageId}, ${Date.now()})
+              VALUES ('summary', ${cleanSummary}, ${fromMessageId}, ${toMessageId}, ${Date.now()})
             `;
           } catch (err) {
             if (debug) console.error("[ChatAgent:contextWindow] SQLite write error:", err);

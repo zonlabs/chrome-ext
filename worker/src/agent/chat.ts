@@ -68,6 +68,9 @@ export class ChatAgent extends AIChatAgent<Env> {
         ai: this.env.AI,
         sql: this.sql.bind(this),
       });
+      if (boundedMessages.length !== this.messages.length || boundedMessages.some((m, idx) => m.id !== this.messages[idx]?.id)) {
+        this.messages = boundedMessages;
+      }
       const rawModelMessages = await convertToModelMessages(boundedMessages);
       const modelMessages = prepareModelMessages(rawModelMessages, _options?.body as Record<string, unknown>, modelName);
 

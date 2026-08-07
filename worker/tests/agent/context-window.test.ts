@@ -67,9 +67,72 @@ describe('boundContextWindow', () => {
     });
 
     expect(mockSummarize).toHaveBeenCalled();
-    const summaryMsg = result.find(m => m.id.startsWith('compaction_summary'));
-    expect(summaryMsg).toBeDefined();
-    expect((summaryMsg?.parts[0] as any).text).toContain('Synthetic conversation summary of dropped turns.');
+    const summaryMsgs = result.filter(m => m.id.startsWith('compaction_summary'));
+    expect(summaryMsgs.length).toBe(1);
+    expect((summaryMsgs[0]?.parts[0] as any).text).toContain('Synthetic conversation summary of dropped turns.');
+  });
+
+  it('strips nested [Conversation Summary] prefixes in recursive compaction', async () => {
+    const msgs: UIMessage[] = [
+      makeTextMsg('compaction_summary_old', 'user', '[Conversation Summary]\nOld summary content'),
+      ...buildConversation(35),
+    ];
+    const mockSummarize = vi.fn().mockImplementation(async (prompt: string) => {
+      expect(prompt).not.toContain('[Conversation Summary]');
+      return 'New updated summary';
+    });
+
+    const result = await boundContextWindow(msgs, {
+      maxMessages: 30,
+      tokenThreshold: 100,
+      protectHead: 2,
+      tailTokenBudget: 50,
+      minTailMessages: 2,
+      summarize: mockSummarize,
+    });
+
+    const newSummaryMsg = result.find(m => m.id.startsWith('compaction_summary_') && m.id !== 'compaction_summary_old');
+    expect(newSummaryMsg).toBeDefined();
+    expect((newSummaryMsg?.parts[0] as any).text).toBe('[Conversation Summary]\nNew updated summary');
+  });
+
+  it('restores stored SQLite summary without splitting assistant tool call and tool result pairs', async () => {
+    const toolCallMsg: UIMessage = {
+      id: 'tool-call-msg',
+      role: 'assistant',
+      parts: [{ type: 'tool-invocation', toolInvocation: { toolCallId: 'call_1', toolName: 'test', args: {}, state: 'call' } }],
+    } as unknown as UIMessage;
+
+    const toolResultMsg: UIMessage = {
+      id: 'tool-result-msg',
+      role: 'user',
+      parts: [{ type: 'tool-invocation', toolInvocation: { toolCallId: 'call_1', toolName: 'test', result: 'ok', state: 'result' } }],
+    } as unknown as UIMessage;
+
+    const msgs: UIMessage[] = [
+      makeTextMsg('head-0', 'user', 'start'),
+      toolCallMsg,
+      toolResultMsg,
+      ...buildConversation(35),
+    ];
+
+    const mockSql = vi.fn().mockResolvedValue([{ summary: 'Restored SQL summary' }]);
+
+    const result = await boundContextWindow(msgs, {
+      maxMessages: 30,
+      tokenThreshold: 100,
+      protectHead: 2,
+      sql: mockSql as any,
+    });
+
+    const toolCallIdx = result.findIndex(m => m.id === 'tool-call-msg');
+    const toolResultIdx = result.findIndex(m => m.id === 'tool-result-msg');
+    const summaryIdx = result.findIndex(m => m.id === 'compaction_summary_persisted');
+
+    expect(toolCallIdx).not.toBe(-1);
+    expect(toolResultIdx).not.toBe(-1);
+    expect(toolResultIdx).toBe(toolCallIdx + 1);
+    expect(summaryIdx).not.toBe(toolCallIdx + 1);
   });
 
   it('truncates large text in older messages', async () => {

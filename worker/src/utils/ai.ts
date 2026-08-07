@@ -8,11 +8,11 @@ export interface WorkersAIBinding {
 }
 
 export interface GenerateAITextOptions {
-  /** Cloudflare Workers AI binding instance (\env.AI\). */
-  binding: WorkersAIBinding | any;
+  /** Cloudflare Workers AI binding instance (`env.AI`). */
+  binding: WorkersAIBinding;
   /** Prompt text to generate completion for. */
   prompt: string;
-  /** Model identifier (defaults to \@cf/meta/llama-3.2-3b-instruct\). */
+  /** Model identifier (defaults to `@cf/meta/llama-3.2-3b-instruct`). */
   model?: string;
   /** Optional system prompt instruction. */
   system?: string;
@@ -27,7 +27,7 @@ export interface GenerateAITextOptions {
  */
 export async function generateAIText(options: GenerateAITextOptions): Promise<string> {
   const modelName = options.model || DEFAULT_FAST_MODEL;
-  const workersai = createWorkersAI({ binding: options.binding });
+  const workersai = createWorkersAI({ binding: options.binding as any });
 
   const { text } = await generateText({
     model: workersai(modelName),
