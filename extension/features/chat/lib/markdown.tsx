@@ -90,7 +90,7 @@ export function renderMarkdown(text: string): React.ReactNode {
     }
 
     const language = match[1] || 'Code';
-    const code = match[2];
+    const code = match[2] || '';
     elements.push(
       <CodeBlock key={`code-${match.index}`} language={language} code={code} />
     );

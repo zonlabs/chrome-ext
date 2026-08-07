@@ -296,7 +296,7 @@ function ActiveThreadChatView(
 
   const latestAssistantIdx = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant') {
+      if (messages[i]?.role === 'assistant') {
         return i;
       }
     }
@@ -391,7 +391,7 @@ function ActiveThreadChatView(
       if (assistantIndex === -1 || userMessageIndex < 0) return;
 
       const userMessage = messages[userMessageIndex];
-      if (userMessage.role !== 'user') return;
+      if (userMessage?.role !== 'user') return;
 
       const userText = ((userMessage.parts.find((part) => part.type === 'text') as { text?: string } | undefined)?.text) || '';
       if (!userText) return;

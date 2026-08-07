@@ -16,6 +16,7 @@ import { ChatSkeleton } from '../../features/chat/components/ChatSkeleton';
 import { PluginsScreen } from '../../features/plugins';
 import type { ChatThread } from '../../lib/api/threads';
 import type { ContentScriptBroadcast } from '../../lib/messages';
+import type { Tab } from '../../lib/types';
 
 interface Plugin {
   id: string;
@@ -110,7 +111,7 @@ function Shell() {
     function handleRuntimeMessage(message: ContentScriptBroadcast | { type: string }) {
       if (message.type === 'selection:changed') {
         const { text } = message as ContentScriptBroadcast;
-        if (text) setSelectedText(text); // only update on non-empty — belt-and-suspenders
+        setSelectedText(text ?? '');
       }
     }
     browser.runtime.onMessage.addListener(handleRuntimeMessage);

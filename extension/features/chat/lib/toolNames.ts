@@ -9,7 +9,7 @@ export function formatToolName(raw: string): string {
   let start = 0;
   while (start < parts.length - 1) {
     const seg = parts[start];
-    if (seg.length <= 5 && /[A-Z]/.test(seg)) {
+    if (seg && seg.length <= 5 && /[A-Z]/.test(seg)) {
       start++;
     } else {
       break;
