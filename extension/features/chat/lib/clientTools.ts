@@ -1,4 +1,4 @@
-import { AITool } from '@cloudflare/ai-chat/react';
+import type { AITool } from '@cloudflare/ai-chat/react';
 import type { ClientToolsContext } from '../../../lib/types';
 import { browser } from 'wxt/browser';
 import { getFocusedElementText } from '../../../lib/page-context-client';

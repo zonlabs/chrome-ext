@@ -1,6 +1,6 @@
-import React, { RefObject } from 'react';
+import React, { type RefObject } from 'react';
 import { Plus, ChevronDown, Check, ArrowUp, Square, X, SquareDashedText } from 'lucide-react';
-import { Tab, ModelTier, ModelEntry } from '../../../lib/types';
+import type { Tab, ModelTier, ModelEntry } from '../../../lib/types';
 import { ModelSelector } from './ModelSelector';
 import { Favicon, safeUrl } from '../../../components/Favicon';
 

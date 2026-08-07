@@ -19,7 +19,7 @@ export function resetSuggestionsCache(): void {
 
 function isRateLimited(): boolean {
   const now = Date.now();
-  while (callTimes.length && now - callTimes[0] > 60000) callTimes.shift();
+  while (callTimes.length && now - callTimes[0]! > 60000) callTimes.shift();
   if (callTimes.length >= 5) return true;
   callTimes.push(now);
   return false;

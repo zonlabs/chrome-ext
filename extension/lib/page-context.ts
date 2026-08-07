@@ -53,7 +53,7 @@ export function extractHeadings(): string[] {
     if (!isVisible(h)) continue;
     const level = h.tagName.toLowerCase();
     const text = (h as HTMLElement).innerText?.trim();
-    if (text) lines.push(`${'#'.repeat(parseInt(level[1]))} ${text}`);
+    if (text) lines.push(`${'#'.repeat(parseInt(level[1] || '1', 10))} ${text}`);
   }
   return lines;
 }

@@ -4,7 +4,9 @@ import { streamText, convertToModelMessages, pruneMessages, createUIMessageStrea
 
 import { DEFAULT_MODEL, buildSystemPrompt } from "./models";
 import { extractFirstUserMessage, prepareModelMessages, generateChatTitle } from "./messages";
+import { boundContextWindow } from "./context-window";
 import { resolveAgentTools } from "./tools";
+import { generateAIText } from "../utils/ai";
 
 /**
  * Chat thread Durable Object handling conversational AI state,
@@ -60,7 +62,16 @@ export class ChatAgent extends AIChatAgent<Env> {
 
     try {
       const tools = await resolveAgentTools(_options, this.env, this.pluginsAgentId);
-      const rawModelMessages = await convertToModelMessages(this.messages);
+      // Bound and compact context window before conversion using Hermes-style
+      // compaction with generateAIText helper.
+      const boundedMessages = await boundContextWindow(this.messages, {
+        ai: this.env.AI,
+        sql: this.sql.bind(this),
+      });
+      if (boundedMessages.length !== this.messages.length || boundedMessages.some((m, idx) => m.id !== this.messages[idx]?.id)) {
+        this.messages = boundedMessages;
+      }
+      const rawModelMessages = await convertToModelMessages(boundedMessages);
       const modelMessages = prepareModelMessages(rawModelMessages, _options?.body as Record<string, unknown>, modelName);
 
       const result = streamText({

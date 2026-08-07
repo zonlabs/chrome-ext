@@ -1,7 +1,7 @@
-import React, { useMemo, useState, RefObject } from 'react';
+import React, { useMemo, useState, type RefObject } from 'react';
 import { Check, Search, ChevronDown } from 'lucide-react';
 import { browser, type PublicPath } from 'wxt/browser';
-import { ModelEntry } from '../../../lib/types';
+import type { ModelEntry } from '../../../lib/types';
 
 interface ModelSelectorProps {
   showModelPopup: boolean;

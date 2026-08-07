@@ -18,7 +18,7 @@ function extractPageContextStandalone(): { url: string; title: string; text: str
     if (!isVisible(h)) continue;
     const level = h.tagName.toLowerCase();
     const text = (h as HTMLElement).innerText?.trim();
-    if (text) hLines.push(`${'#'.repeat(parseInt(level[1]))} ${text}`);
+    if (text) hLines.push(`${'#'.repeat(parseInt(level[1] || '1', 10))} ${text}`);
   }
   if (hLines.length) parts.push(`\nHeadings:\n${hLines.join('\n')}`);
   const paragraphs = document.querySelectorAll('p, li, td, th, blockquote, figcaption');

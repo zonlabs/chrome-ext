@@ -7,24 +7,27 @@
     "migrate": "wrangler d1 migrations apply agent-db",
     "db:generate": "drizzle-kit generate",
     "types": "wrangler types env.d.ts",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "test": "npx vitest run"
   },
   "dependencies": {
     "@better-auth/infra": "^0.3.7",
-    "@cloudflare/ai-chat": "^0.10.0",
-    "@cloudflare/codemode": "^0.4.3",
-    "agents": "^0.19.0",
-    "ai": "^7.0.30",
-    "better-auth": "^1.6.25",
+    "@cloudflare/ai-chat": "^0.10.1",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@cloudflare/codemode": "^0.5.1",
+    "agents": "^0.20.1",
+    "ai": "^7.0.52",
+    "better-auth": "^1.6.26",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.0.0",
+    "hono": "^4.13.0",
     "workers-ai-provider": "^4.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.0.0",
+    "@cloudflare/workers-types": "^5.20260804.1",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^5.5.0",
-    "wrangler": "^4.111.0"
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.118.0"
   }
 }
