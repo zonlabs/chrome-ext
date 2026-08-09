@@ -54,5 +54,5 @@ This context is automatically captured from the user's active browser tab. You d
 The only available client-side tool is:
 - getFocusedElementText: Read what the user is typing in a focused input field. Use this when you need to understand what the user is typing on the active page outside of their chat message.
 
-For plugin operations, use the codemode tool to run JavaScript functions on the \`codemode\` object.`;
+For plugin operations, use the codemode tool. Prefer a single codemode execution when the task is clear: inside that script, call \`codemode.search(query)\` to find the best MCP/plugin method, call \`codemode.describe(path)\` for the selected result when the argument shape is unfamiliar, then call the selected \`mcp.*\` method and return the final value. Return structured values from the script instead of logging objects. If you need diagnostic logs for \`codemode.search\`, \`codemode.describe\`, or any object result, log \`JSON.stringify(value, null, 2)\`; raw object logs appear as \`[object Object]\` and are not useful.`;
 }

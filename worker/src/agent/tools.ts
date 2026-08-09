@@ -1,6 +1,6 @@
 import { createToolsFromClientSchemas, OnChatMessageOptions } from "@cloudflare/ai-chat";
-import { createCodeTool } from "@cloudflare/codemode/ai";
-import { DynamicWorkerExecutor } from "@cloudflare/codemode";
+import { toolSetConnector } from "@cloudflare/codemode/ai";
+import { createCodemodeRuntime, DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { ToolSet } from "ai";
 import { McpProxy } from "../mcp-proxy";
 
@@ -16,6 +16,7 @@ import { McpProxy } from "../mcp-proxy";
  */
 export async function resolveAgentTools(
   options: OnChatMessageOptions | undefined,
+  ctx: DurableObjectState,
   env: Env,
   pluginsAgentId?: string
 ): Promise<ToolSet> {
@@ -39,7 +40,23 @@ export async function resolveAgentTools(
   }
 
   const executor = new DynamicWorkerExecutor({ loader: env.LOADER });
-  const codemode = createCodeTool({ tools: mcpTools, executor });
+  const runtime = createCodemodeRuntime({
+    ctx,
+    executor,
+    connectors: [
+      toolSetConnector(ctx, {
+        name: "mcp",
+        tools: mcpTools,
+        instructions:
+          "Connected MCP/plugin tools. When the task is clear, use one codemode script: search with codemode.search(query), inspect the best path with codemode.describe(path) when needed, then call the selected mcp.* method and return the final value. Return objects directly or log JSON.stringify(value, null, 2); raw object logs appear as [object Object].",
+      }),
+    ],
+  });
+  const codemode = runtime.tool({
+    connectorHints: {
+      mcp: "Connected MCP/plugin tools. Use codemode.search(), codemode.describe(), then call mcp.<method>(args). Return objects directly or stringify diagnostic logs.",
+    },
+  });
 
   return { ...clientTools, codemode };
 }

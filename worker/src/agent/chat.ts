@@ -61,7 +61,7 @@ export class ChatAgent extends AIChatAgent<Env> {
     const userMessage = extractFirstUserMessage(this.messages);
 
     try {
-      const tools = await resolveAgentTools(_options, this.env, this.pluginsAgentId);
+      const tools = await resolveAgentTools(_options, this.ctx, this.env, this.pluginsAgentId);
       // Bound and compact context window before conversion using Hermes-style
       // compaction with generateAIText helper.
       const boundedMessages = await boundContextWindow(this.messages, {
